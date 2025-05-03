@@ -47,14 +47,19 @@ class SimulatedStepCounter {
 // Step detection using device motion 
 class MotionStepCounter {
   private stepCount = 0;
-  private lastAcceleration = { x: 0, y: 0, z: 0 };
-  private threshold = 1.2; // Sensitivity threshold
+  private accelerationBuffer: Array<{ x: number, y: number, z: number }> = [];
+  private bufferSize = 5; // Keep track of the last 5 readings for smoothing
+  private threshold = 1.0; // Lower sensitivity threshold for Samsung A02s
+  private stepThreshold = 0.8; // Minimum threshold to count as a valid step
+  private cooldownPeriod = 400; // Milliseconds to wait between steps (prevent double-counting)
+  private lastStepTime = 0;
   private listeners: Array<(steps: number) => void> = [];
-  private subscriptionId: string | null = null;
+  private calibrating = true;
+  private calibrationSamples: number[] = []; // Store magnitudes during calibration
+  private calibrationCount = 0;
   
   async isAvailable() {
     try {
-      // Check if accelerometer is available
       const result = await Motion.isAccelerometerAvailable();
       return result.isAvailable;
     } catch (e) {
@@ -64,36 +69,87 @@ class MotionStepCounter {
   }
   
   startStepCounting() {
+    // Clear data and prepare for new counting session
+    this.accelerationBuffer = [];
+    this.calibrationSamples = [];
+    this.calibrating = true;
+    this.calibrationCount = 0;
+    
     // Ask permission for motion sensors
     Motion.requestPermissions();
     
-    const detectSteps = (acceleration: { x: number, y: number, z: number }) => {
-      // Simple step detection algorithm based on acceleration magnitude change
-      const magnitude = Math.sqrt(
-        Math.pow(acceleration.x, 2) + 
-        Math.pow(acceleration.y, 2) + 
-        Math.pow(acceleration.z, 2)
+    // Function to get the smoothed acceleration
+    const getSmoothedAcceleration = () => {
+      if (this.accelerationBuffer.length === 0) return { x: 0, y: 0, z: 0 };
+      
+      const sum = this.accelerationBuffer.reduce(
+        (acc, curr) => ({ 
+          x: acc.x + curr.x, 
+          y: acc.y + curr.y, 
+          z: acc.z + curr.z 
+        }), 
+        { x: 0, y: 0, z: 0 }
       );
       
-      const lastMagnitude = Math.sqrt(
-        Math.pow(this.lastAcceleration.x, 2) + 
-        Math.pow(this.lastAcceleration.y, 2) + 
-        Math.pow(this.lastAcceleration.z, 2)
-      );
-      
-      // If there's a significant change in acceleration, count as a step
-      if (Math.abs(magnitude - lastMagnitude) > this.threshold) {
-        this.stepCount++;
-        this.listeners.forEach(listener => listener(this.stepCount));
-      }
-      
-      this.lastAcceleration = acceleration;
+      return {
+        x: sum.x / this.accelerationBuffer.length,
+        y: sum.y / this.accelerationBuffer.length,
+        z: sum.z / this.accelerationBuffer.length
+      };
     };
     
-    // Start listening to accelerometer data
+    const detectSteps = (acceleration: { x: number, y: number, z: number }) => {
+      // Add to buffer and maintain buffer size
+      this.accelerationBuffer.push(acceleration);
+      if (this.accelerationBuffer.length > this.bufferSize) {
+        this.accelerationBuffer.shift();
+      }
+      
+      // Get smoothed acceleration
+      const smoothedAcceleration = getSmoothedAcceleration();
+      
+      // Calculate magnitude (remove gravity component for better accuracy)
+      const magnitude = Math.sqrt(
+        Math.pow(smoothedAcceleration.x, 2) + 
+        Math.pow(smoothedAcceleration.y, 2) + 
+        Math.pow(smoothedAcceleration.z - 9.8, 2) // Subtract gravity from z-axis
+      );
+      
+      // Calibration phase - collect samples to determine baseline
+      if (this.calibrating) {
+        this.calibrationSamples.push(magnitude);
+        this.calibrationCount++;
+        
+        // After collecting 100 samples, finish calibration
+        if (this.calibrationCount >= 100) {
+          this.calibrating = false;
+          
+          // Calculate dynamic threshold based on calibration data
+          const sortedSamples = [...this.calibrationSamples].sort((a, b) => a - b);
+          const medianIndex = Math.floor(sortedSamples.length / 2);
+          const medianMagnitude = sortedSamples[medianIndex];
+          
+          // Set threshold to be 2.5x the median value during calibration
+          // This helps adapt to different phone models and user gaits
+          this.threshold = Math.max(medianMagnitude * 2.5, this.stepThreshold);
+          console.log("Calibration complete, threshold set to:", this.threshold);
+        }
+        return;
+      }
+      
+      const now = Date.now();
+      // Only count steps if we're past the cooldown period and the magnitude exceeds threshold
+      if (now - this.lastStepTime > this.cooldownPeriod && magnitude > this.threshold) {
+        this.stepCount++;
+        this.lastStepTime = now;
+        this.listeners.forEach(listener => listener(this.stepCount));
+      }
+    };
+    
+    // Start listening to accelerometer data at a higher sampling rate for Samsung A02s
     Motion.addListener('accel', (event) => {
       detectSteps(event.acceleration);
-    });
+    }, { frequency: 50 }); // Increase sampling rate for better accuracy
     
     return {
       addListener: (callback: (steps: number) => void) => {
@@ -208,6 +264,19 @@ export function useStepCounter() {
       if (!Capacitor.isNativePlatform()) return;
       
       const progress = Math.min(Math.round((currentSteps / goal) * 100), 100);
+      
+      // Create a persistent channel specifically for the step counter
+      await LocalNotifications.createChannel({
+        id: "step-counter",
+        name: "Step Counter",
+        description: "Persistent notification showing your step count",
+        importance: 3, // Default priority (less intrusive but visible)
+        visibility: 1,
+        lights: false,
+        vibration: false
+      });
+      
+      // Schedule a foreground-service-style persistent notification
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -215,8 +284,18 @@ export function useStepCounter() {
             title: "Step Tracker",
             body: `${currentSteps.toLocaleString()} / ${goal.toLocaleString()} steps (${progress}%)`,
             ongoing: true,
+            sticky: true, // Makes notification stay in the notification panel
+            channelId: "step-counter",
+            smallIcon: "ic_stat_directions_walk", // Use walking icon
+            importance: 3,
+            foreground: true, // Tells Android this is a foreground service notification
             actionTypeId: "",
-            extra: null
+            extra: {
+              // Samsung-specific flags to keep notification visible
+              lockScreenVisibility: 1,
+              priority: "default",
+              persistentNotification: true
+            }
           }
         ]
       });

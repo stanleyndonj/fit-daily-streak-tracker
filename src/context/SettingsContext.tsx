@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppSettings } from '@/types';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { Haptics } from '@capacitor/haptics';
 
 // Default settings
 const defaultSettings: AppSettings = {
@@ -10,8 +11,19 @@ const defaultSettings: AppSettings = {
   reminderTime: "07:00",
   voiceCuesEnabled: false,
   vibrationEnabled: true,
-  dailyStepGoal: 5000
+  dailyStepGoal: 5000,
+  selectedRingtone: "default",
+  notificationPriority: "high"
 };
+
+// Available ringtones for Android
+export const AVAILABLE_RINGTONES = [
+  { id: "default", name: "Default" },
+  { id: "alarm", name: "Alarm" },
+  { id: "notification", name: "Notification" },
+  { id: "ringtone", name: "Ringtone" },
+  { id: "beep", name: "Beep" }
+];
 
 // Context type definition
 interface SettingsContextType {
@@ -80,7 +92,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Schedule daily reminder
+  // Schedule daily reminder with improved reliability for Samsung devices
   const scheduleReminder = async (): Promise<void> => {
     if (!settings.reminderEnabled) return;
     
@@ -101,25 +113,64 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         triggerTime.setDate(triggerTime.getDate() + 1);
       }
       
-      // Schedule the notification
+      // Samsung devices sometimes need extra parameters for reliable notifications
+      let soundName = settings.selectedRingtone;
+      if (soundName === 'default') {
+        soundName = 'notification';  // Fallback to standard notification sound
+      }
+      
+      // Schedule with improved options for Samsung devices
       await LocalNotifications.schedule({
         notifications: [
           {
             id: 100,
             title: "Workout Reminder",
-            body: "Don't forget your workout today!",
+            body: "It's time for your workout! Stay on track with your fitness goals.",
             schedule: { 
               at: triggerTime,
               repeats: true,
-              every: 'day'
+              every: 'day',
+              allowWhileIdle: true,  // Allow notification even when device is idle
+              count: 1  // Number of times to repeat notification if missed
             },
+            sound: soundName,
+            ongoing: false,
+            autoCancel: true,
+            channelId: "workout-reminders",
+            smallIcon: "ic_stat_notification",
+            largeIcon: "ic_stat_notification",
+            importance: 4,  // HIGH priority (Samsung needs higher priority)
+            vibration: settings.vibrationEnabled,
             actionTypeId: "",
-            extra: null
+            extra: {
+              channelName: "Workout Reminders",
+              priority: settings.notificationPriority
+            }
           }
         ]
       });
       
-      console.log('Reminder scheduled for', triggerTime);
+      // Create a channel specifically for workout reminders (Samsung needs this)
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.createChannel({
+          id: "workout-reminders",
+          name: "Workout Reminders",
+          description: "Notification channel for workout reminders",
+          importance: 4,
+          visibility: 1,
+          sound: soundName,
+          vibration: settings.vibrationEnabled,
+          lights: true,
+          lightColor: "#488AFF"
+        });
+      }
+      
+      // Trigger haptic feedback to confirm reminder set
+      if (settings.vibrationEnabled && Capacitor.isNativePlatform()) {
+        await Haptics.vibrate();
+      }
+      
+      console.log('Reminder scheduled for', triggerTime, 'with sound', soundName);
     } catch (error) {
       console.error('Error scheduling reminder:', error);
     }

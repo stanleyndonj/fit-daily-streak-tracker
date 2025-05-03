@@ -38,6 +38,8 @@ export interface AppSettings {
   voiceCuesEnabled: boolean;
   vibrationEnabled: boolean;
   dailyStepGoal: number;
+  selectedRingtone: string; // ID of selected ringtone
+  notificationPriority: "default" | "high" | "max"; // Priority level for notifications
 }
 
 export interface StepData {

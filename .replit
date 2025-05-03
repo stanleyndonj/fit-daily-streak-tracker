@@ -53,6 +53,27 @@ args = "npx cap sync"
 task = "shell.exec"
 args = "echo \"Now open Android Studio with 'npx cap open android' to build your APK\""
 
+[[workflows.workflow]]
+name = "Build for Samsung A02s"
+author = 42201938
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build:mobile"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx cap sync"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"Android build optimized for Samsung A02s - open Android Studio to build APK\""
+
 [[ports]]
 localPort = 8080
 externalPort = 80

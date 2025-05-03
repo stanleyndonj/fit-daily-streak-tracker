@@ -14,16 +14,27 @@ const config: CapacitorConfig = {
   // Enable permissions for notifications and motion sensors
   plugins: {
     LocalNotifications: {
-      smallIcon: "ic_stat_icon_config_sample",
+      smallIcon: "ic_stat_directions_walk",
       iconColor: "#488AFF",
-      sound: "beep.wav",
+      sound: "notification",
+      importance: 4, // High priority for Samsung devices
     },
-    // Android permissions
+    // Android permissions - expanded for Samsung compatibility
     PermissionsAndroid: {
       permissions: [
         "android.permission.ACTIVITY_RECOGNITION",
-        "android.permission.HIGH_SAMPLING_RATE_SENSORS"
+        "android.permission.HIGH_SAMPLING_RATE_SENSORS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.ACCESS_NOTIFICATION_POLICY",
+        "android.permission.POST_NOTIFICATIONS"
       ]
+    },
+    // Motion settings
+    Motion: {
+      samplingRate: 40 // Optimized for Samsung A02s
     }
   },
   cordova: {
@@ -34,7 +45,14 @@ const config: CapacitorConfig = {
       FadeSplashScreenDuration: "300",
       SplashShowOnlyFirstTime: "false",
       SplashScreen: "screen",
-      SplashScreenDelay: "3000"
+      SplashScreenDelay: "3000",
+      // Samsung A02s optimizations
+      AndroidPersistentFileLocation: "Compatibility",
+      AndroidExtraFilesystems: "files,cache,root",
+      KeepRunning: "true",
+      android_headerColor: "#488AFF",
+      AndroidLaunchMode: "singleInstance",
+      LoadUrlTimeoutValue: "60000"
     }
   }
 };
