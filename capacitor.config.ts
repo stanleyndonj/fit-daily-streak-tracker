@@ -6,8 +6,9 @@ const config: CapacitorConfig = {
   appName: 'fit-daily-streak-tracker',
   webDir: 'dist',
   server: {
-    url: "https://d0ce9398-d4d1-400d-92eb-aae8353ae61a.lovableproject.com?forceHideBadge=true",
-    cleartext: true
+    androidScheme: "https",
+    cleartext: true,
+    hostname: "app"
   },
   // Enable permissions for notifications
   plugins: {
