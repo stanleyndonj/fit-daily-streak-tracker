@@ -22,6 +22,7 @@ export interface WorkoutCompletion {
   workoutId: string;
   date: string; // YYYY-MM-DD format
   completedExercises: string[]; // Array of exercise IDs
+  notes?: string; // Added for journal/notes feature
 }
 
 export interface StreakData {
@@ -29,4 +30,18 @@ export interface StreakData {
   longestStreak: number;
   lastCompletionDate: string | null; // YYYY-MM-DD format
   streakDates: string[]; // Array of dates in YYYY-MM-DD format
+}
+
+export interface AppSettings {
+  reminderEnabled: boolean;
+  reminderTime: string; // Format: "HH:MM"
+  voiceCuesEnabled: boolean;
+  vibrationEnabled: boolean;
+  dailyStepGoal: number;
+}
+
+export interface StepData {
+  date: string; // YYYY-MM-DD format
+  count: number;
+  baselineCount: number; // The count at the start of the day
 }

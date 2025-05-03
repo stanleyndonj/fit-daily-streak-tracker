@@ -24,6 +24,7 @@ interface WorkoutContextType {
   updateExercise: (workoutId: string, exercise: Exercise) => void;
   deleteExercise: (workoutId: string, exerciseId: string) => void;
   toggleExerciseCompletion: (workoutId: string, exerciseId: string) => void;
+  updateWorkoutNote: (completionId: string, note: string) => void;
   resetDailyProgress: () => void;
 }
 
@@ -182,6 +183,22 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     toast.success(`Removed ${exerciseToDelete?.name || 'exercise'} from workout`);
   };
 
+  // Update workout note
+  const updateWorkoutNote = (completionId: string, note: string) => {
+    const updatedCompletions = completions.map(completion => {
+      if (completion.id === completionId) {
+        return {
+          ...completion,
+          notes: note
+        };
+      }
+      return completion;
+    });
+    
+    setCompletions(updatedCompletions);
+    saveCompletions(updatedCompletions);
+  };
+
   // Toggle exercise completion status
   const toggleExerciseCompletion = (workoutId: string, exerciseId: string) => {
     const today = formatDateToYYYYMMDD(new Date());
@@ -240,6 +257,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     updateExercise,
     deleteExercise,
     toggleExerciseCompletion,
+    updateWorkoutNote,
     resetDailyProgress
   };
 
