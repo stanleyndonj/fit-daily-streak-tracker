@@ -12,6 +12,19 @@ const defaultSettings: AppSettings = {
   dailyStepGoal: 5000
 };
 
+// Initialize notifications
+const initializeNotifications = async () => {
+  try {
+    const { display } = await LocalNotifications.checkPermissions();
+    
+    if (display !== 'granted') {
+      await LocalNotifications.requestPermissions();
+    }
+  } catch (error) {
+    console.error('Error initializing notifications:', error);
+  }
+};
+
 interface SettingsContextType {
   settings: AppSettings;
   updateSettings: (settings: AppSettings) => void;
