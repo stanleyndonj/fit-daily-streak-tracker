@@ -11,17 +11,18 @@ const config: CapacitorConfig = {
     cleartext: true,
     hostname: "localhost"
   },
-  // Enable permissions for notifications and step counter
+  // Enable permissions for notifications and motion sensors
   plugins: {
     LocalNotifications: {
       smallIcon: "ic_stat_icon_config_sample",
       iconColor: "#488AFF",
       sound: "beep.wav",
     },
-    // Cordova plugins configuration
+    // Android permissions
     PermissionsAndroid: {
       permissions: [
-        "android.permission.ACTIVITY_RECOGNITION"
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.HIGH_SAMPLING_RATE_SENSORS"
       ]
     }
   },
