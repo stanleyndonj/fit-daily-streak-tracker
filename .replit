@@ -39,10 +39,6 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install @capacitor/android @capacitor/pedometer @capacitor/local-notifications"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
 args = "npm run build:mobile"
 
 [[workflows.workflow.tasks]]

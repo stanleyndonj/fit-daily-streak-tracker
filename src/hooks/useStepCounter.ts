@@ -4,19 +4,16 @@ import { formatDateToYYYYMMDD } from '@/lib/workout-utils';
 import { useSettings } from '@/context/SettingsContext';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { Pedometer } from '@awesome-cordova-plugins/pedometer';
 
-// Create a simulated pedometer for testing
+// Create a simulated pedometer for web testing
 class SimulatedPedometer {
-  private listeners: Array<(event: {numberOfSteps: number}) => void> = [];
+  private listeners: Array<(data: {numberOfSteps: number}) => void> = [];
   private interval: number | null = null;
   private steps = 0;
 
-  isAvailable() {
-    return Promise.resolve({ isAvailable: true });
-  }
-
-  startStepCountUpdates() {
-    if (this.interval) return Promise.resolve();
+  startPedometerUpdates() {
+    if (this.interval) return;
     
     this.interval = window.setInterval(() => {
       // Add 5-15 steps every 10 seconds
@@ -27,53 +24,36 @@ class SimulatedPedometer {
       });
     }, 10000) as unknown as number;
     
-    return Promise.resolve();
+    // Return an observable-like object with subscribe method
+    return {
+      subscribe: (callback: (data: {numberOfSteps: number}) => void) => {
+        this.listeners.push(callback);
+        return {
+          unsubscribe: () => {
+            this.listeners = this.listeners.filter(l => l !== callback);
+          }
+        };
+      }
+    };
   }
 
-  stopStepCountUpdates() {
+  stopPedometerUpdates() {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
     }
-    return Promise.resolve();
   }
 
-  addListener(event: string, callback: (event: {numberOfSteps: number}) => void) {
-    this.listeners.push(callback);
-    return { remove: () => this.removeListener(callback) };
-  }
-
-  removeListener(callback: (event: {numberOfSteps: number}) => void) {
-    this.listeners = this.listeners.filter(listener => listener !== callback);
-  }
-
-  removeAllListeners() {
-    this.listeners = [];
+  isAvailable() {
+    return Promise.resolve(false);
   }
 }
-
-// Get the appropriate pedometer based on environment
-const getPedometer = () => {
-  // If in native mobile environment and pedometer is available
-  if (Capacitor.isNativePlatform()) {
-    try {
-      // Try to import the Capacitor pedometer
-      const { Pedometer } = require('@capacitor/pedometer');
-      return Pedometer;
-    } catch (e) {
-      console.warn('Native pedometer not available, using simulated pedometer');
-      return new SimulatedPedometer();
-    }
-  }
-  
-  // If in web environment or pedometer not available, use simulated
-  return new SimulatedPedometer();
-};
 
 export function useStepCounter() {
   const [steps, setSteps] = useState(0);
   const { settings } = useSettings();
   const [available, setAvailable] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     // Load steps from localStorage
@@ -87,6 +67,7 @@ export function useStepCounter() {
         setSteps(stepData.count - stepData.baselineCount);
         baselineCount = stepData.baselineCount;
       } else {
+        // New day, reset step data
         const newStepData = {
           date: today,
           count: 0,
@@ -103,32 +84,48 @@ export function useStepCounter() {
       localStorage.setItem('fit-daily-steps', JSON.stringify(newStepData));
     }
 
-    const Pedometer = getPedometer();
-    let cleanup = () => {};
-
     const startPedometerTracking = async () => {
       try {
-        const { isAvailable } = await Pedometer.isAvailable();
-        setAvailable(isAvailable);
-
-        if (isAvailable) {
-          await Pedometer.startStepCountUpdates();
-          const listener = Pedometer.addListener('stepChanges', (event: { numberOfSteps: number }) => {
-            const currentSteps = event.numberOfSteps - baselineCount;
+        let stepCounter: any;
+        
+        // Use appropriate pedometer based on platform
+        if (Capacitor.isNativePlatform()) {
+          // Check if Cordova Pedometer is available
+          try {
+            const isAvailable = await Pedometer.isAvailable();
+            setAvailable(isAvailable);
+            
+            if (!isAvailable) {
+              console.warn('Native pedometer not available, using simulated pedometer');
+              stepCounter = new SimulatedPedometer();
+            } else {
+              stepCounter = Pedometer;
+            }
+          } catch (e) {
+            console.warn('Error checking pedometer availability:', e);
+            stepCounter = new SimulatedPedometer();
+          }
+        } else {
+          // Web environment - use simulated
+          stepCounter = new SimulatedPedometer();
+        }
+        
+        if (stepCounter) {
+          // Start pedometer and subscribe to updates
+          const sub = stepCounter.startPedometerUpdates().subscribe((data: { numberOfSteps: number }) => {
+            const currentSteps = Math.max(0, data.numberOfSteps - baselineCount);
             setSteps(currentSteps);
+            
             const updatedStepData = {
               date: today,
-              count: event.numberOfSteps,
+              count: data.numberOfSteps,
               baselineCount
             };
             localStorage.setItem('fit-daily-steps', JSON.stringify(updatedStepData));
             updateStepNotification(currentSteps, settings.dailyStepGoal);
           });
           
-          cleanup = () => {
-            listener.remove();
-            Pedometer.stopStepCountUpdates();
-          };
+          setSubscription(sub);
         }
       } catch (error) {
         console.error('Error setting up pedometer:', error);
@@ -139,7 +136,17 @@ export function useStepCounter() {
     startPedometerTracking();
     
     return () => {
-      cleanup();
+      // Clean up subscription when component unmounts
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+      if (Capacitor.isNativePlatform()) {
+        try {
+          Pedometer.stopPedometerUpdates();
+        } catch (e) {
+          console.warn('Error stopping pedometer:', e);
+        }
+      }
     };
   }, [settings.dailyStepGoal]);
 

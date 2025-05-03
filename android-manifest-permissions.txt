@@ -1,0 +1,17 @@
+
+After running the "Build Android APK" workflow, open Android Studio with:
+
+npx cap open android
+
+Then, in Android Studio, locate the AndroidManifest.xml file and add these permissions:
+
+<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+<uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
+
+For Android 10+ compatibility, also add this feature:
+
+<uses-feature android:name="android.hardware.sensor.stepcounter" android:required="true" />
+
+Save the file, then build your APK from Android Studio:
+1. Go to Build > Build Bundle(s) / APK(s) > Build APK(s)
+2. Install the generated APK on your phone

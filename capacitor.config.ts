@@ -18,10 +18,24 @@ const config: CapacitorConfig = {
       iconColor: "#488AFF",
       sound: "beep.wav",
     },
-    Pedometer: {
-      requiresHealthDataAccess: true,
-    },
+    // Cordova plugins configuration
+    PermissionsAndroid: {
+      permissions: [
+        "android.permission.ACTIVITY_RECOGNITION"
+      ]
+    }
   },
+  cordova: {
+    preferences: {
+      ScrollEnabled: "false",
+      BackupWebStorage: "none",
+      SplashMaintainAspectRatio: "true",
+      FadeSplashScreenDuration: "300",
+      SplashShowOnlyFirstTime: "false",
+      SplashScreen: "screen",
+      SplashScreenDelay: "3000"
+    }
+  }
 };
 
 export default config;
