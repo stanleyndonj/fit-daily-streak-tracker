@@ -11,12 +11,15 @@ const config: CapacitorConfig = {
     cleartext: true,
     hostname: "localhost"
   },
-  // Enable permissions for notifications
+  // Enable permissions for notifications and step counter
   plugins: {
     LocalNotifications: {
       smallIcon: "ic_stat_icon_config_sample",
       iconColor: "#488AFF",
       sound: "beep.wav",
+    },
+    Pedometer: {
+      requiresHealthDataAccess: true,
     },
   },
 };

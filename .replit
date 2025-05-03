@@ -27,3 +27,24 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run build:mobile"
+
+[[workflows.workflow]]
+name = "Build Android APK"
+author = 42201938
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build:mobile"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx cap add android"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx cap sync"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"Now open Android Studio with 'npx cap open android' to build your APK\""

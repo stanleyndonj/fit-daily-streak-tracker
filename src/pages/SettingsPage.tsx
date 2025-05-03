@@ -35,11 +35,17 @@ const SettingsPage = () => {
   };
 
   // Handle reminder change
-  const handleReminderChange = (checked: boolean) => {
+  const handleReminderChange = async (checked: boolean) => {
     setReminderEnabled(checked);
     if (checked) {
-      // In a real mobile app, this would request notification permissions
-      toast.info("Daily reminder notifications enabled");
+      // Request notification permissions
+      const granted = await updateSettings.setupNotificationPermissions();
+      if (granted) {
+        toast.success("Daily reminder notifications enabled");
+      } else {
+        toast.error("Please allow notifications in your device settings");
+        setReminderEnabled(false);
+      }
     }
   };
 
