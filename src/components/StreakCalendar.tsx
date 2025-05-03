@@ -3,6 +3,7 @@ import React from 'react';
 import { useWorkout } from '@/context/WorkoutContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, eachDayOfInterval, startOfMonth, endOfMonth, isToday } from 'date-fns';
+import { Calendar } from 'lucide-react';
 
 const StreakCalendar: React.FC = () => {
   const { streakData } = useWorkout();
@@ -13,9 +14,17 @@ const StreakCalendar: React.FC = () => {
   const days = eachDayOfInterval({ start: startDay, end: endDay });
   
   return (
-    <Card>
+    <Card className="dashboard-card glass-card">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">{format(today, 'MMMM yyyy')} Activity</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center">
+            <Calendar className="h-5 w-5 mr-2 text-accent" />
+            {format(today, 'MMMM yyyy')}
+          </CardTitle>
+          <span className="text-xs text-muted-foreground rounded-full bg-muted px-2.5 py-0.5">
+            {streakData.streakDates.length} active days
+          </span>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-7 gap-1">
@@ -41,11 +50,11 @@ const StreakCalendar: React.FC = () => {
               <div 
                 key={dateStr}
                 className={`
-                  h-8 flex items-center justify-center text-xs rounded-full
-                  ${isCurrentDay ? 'border border-primary' : ''}
+                  h-9 flex items-center justify-center text-xs rounded-full transition-all duration-200
+                  ${isCurrentDay ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}
                   ${isActiveDay 
-                    ? 'bg-primary/90 text-primary-foreground' 
-                    : 'hover:bg-muted/40'}
+                    ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-medium shadow-sm' 
+                    : 'hover:bg-muted'}
                 `}
               >
                 {format(day, 'd')}
@@ -54,14 +63,14 @@ const StreakCalendar: React.FC = () => {
           })}
         </div>
         
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <div>
+        <div className="mt-6 flex items-center justify-between">
+          <div className="text-sm">
             <span className="font-medium">{streakData.streakDates.length}</span>
-            <span className="text-muted-foreground ml-1">active days this month</span>
+            <span className="text-muted-foreground ml-1">active days</span>
           </div>
           {streakData.currentStreak > 0 && (
-            <div className="streak-badge animate-pulse-scale">
-              {streakData.currentStreak} day streak!
+            <div className="streak-badge animate-pulse-scale bg-gradient-to-r from-accent to-primary text-white">
+              {streakData.currentStreak} day streak! 🔥
             </div>
           )}
         </div>

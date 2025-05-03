@@ -33,7 +33,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 142.1 76.2% 36.3%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
   }
 
   .dark {
@@ -74,24 +74,66 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
   }
 }
 
 /* Custom styles for fitness app */
 @layer components {
   .workout-card {
-    @apply relative flex flex-col rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow overflow-hidden;
+    @apply relative flex flex-col rounded-xl border bg-card text-card-foreground shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden;
   }
   
   .workout-completed {
-    @apply border-green-500 dark:border-green-600;
+    @apply border-primary dark:border-primary;
   }
 
   .streak-badge {
-    @apply inline-flex items-center justify-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground;
+    @apply inline-flex items-center justify-center rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground shadow-sm;
   }
   
   .exercise-item {
-    @apply flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-colors;
+    @apply flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-all duration-200;
+  }
+  
+  /* New modern styles */
+  .glass-card {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-white/20 dark:border-gray-800/50 shadow-xl;
+  }
+  
+  .gradient-border {
+    @apply relative after:absolute after:inset-0 after:rounded-xl after:p-[1px] after:bg-gradient-to-br after:from-primary after:to-accent after:opacity-70 after:pointer-events-none;
+  }
+  
+  .dashboard-card {
+    @apply rounded-xl overflow-hidden transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg;
+  }
+
+  .stat-value {
+    @apply font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent;
+  }
+  
+  .app-header {
+    @apply bg-gradient-to-r from-green-400/90 to-blue-500/90 text-white shadow-md;
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-pulse-scale {
+    animation: pulse-scale 2s infinite;
+  }
+  
+  @keyframes pulse-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent;
   }
 }
