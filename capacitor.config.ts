@@ -5,10 +5,11 @@ const config: CapacitorConfig = {
   appId: 'app.lovable.d0ce9398d4d1400d92ebaae8353ae61a',
   appName: 'fit-daily-streak-tracker',
   webDir: 'dist',
+  // Configure for offline use with bundled web assets
   server: {
     androidScheme: "https",
     cleartext: true,
-    hostname: "app"
+    hostname: "localhost"
   },
   // Enable permissions for notifications
   plugins: {
