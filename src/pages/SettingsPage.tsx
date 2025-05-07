@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, Volume2, Vibrate } from 'lucide-react';
 import Header from '@/components/Header';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useSettings, AVAILABLE_RINGTONES } from '@/context/SettingsContext';
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { playRingtone } from './ringtoneService';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -55,6 +56,13 @@ const SettingsPage = () => {
         setReminderEnabled(false);
       }
     }
+  };
+
+  // Handle ringtone selection and preview
+  const handleRingtoneSelect = (value: string) => {
+    setSelectedRingtone(value);
+    // Play a preview of the selected ringtone
+    playRingtone(value);
   };
 
   return (
@@ -104,7 +112,7 @@ const SettingsPage = () => {
                   </div>
                   <div className="mt-4">
                     <Label htmlFor="ringtone-select">Ringtone</Label>
-                    <Select value={selectedRingtone} onValueChange={setSelectedRingtone}>
+                    <Select value={selectedRingtone} onValueChange={handleRingtoneSelect}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a ringtone" />
                       </SelectTrigger>
@@ -116,6 +124,9 @@ const SettingsPage = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Select a ringtone and hear a preview.
+                    </p>
                   </div>
                 </>
               )}

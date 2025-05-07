@@ -2,9 +2,21 @@
 import { useState, useEffect } from 'react';
 import { formatDateToYYYYMMDD } from '@/lib/workout-utils';
 import { useSettings } from '@/context/SettingsContext';
-import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
-import { Motion } from '@capacitor/motion';
+
+// For TypeScript support without direct imports
+interface LocalNotificationsPlugin {
+  schedule: (options: any) => Promise<void>;
+  createChannel: (options: any) => Promise<void>;
+  cancel: (options: any) => Promise<void>;
+}
+
+interface MotionPlugin {
+  isAccelerometerAvailable: () => Promise<{ isAvailable: boolean }>;
+  addListener: (eventName: string, callback: (event: any) => void, options?: any) => void;
+  requestPermissions: () => Promise<void>;
+  removeAllListeners: () => Promise<void>;
+}
 
 // Create a simulated pedometer for web testing
 class SimulatedStepCounter {
@@ -57,11 +69,18 @@ class MotionStepCounter {
   private calibrating = true;
   private calibrationSamples: number[] = []; // Store magnitudes during calibration
   private calibrationCount = 0;
+  private motionPlugin: MotionPlugin | null = null;
   
   async isAvailable() {
     try {
-      const result = await Motion.isAccelerometerAvailable();
-      return result.isAvailable;
+      if (Capacitor.isNativePlatform()) {
+        // Dynamically import the Motion plugin
+        const { Motion } = await import('@capacitor/motion');
+        this.motionPlugin = Motion;
+        const result = await Motion.isAccelerometerAvailable();
+        return result.isAvailable;
+      }
+      return false;
     } catch (e) {
       console.error('Error checking motion availability:', e);
       return false;
@@ -69,6 +88,8 @@ class MotionStepCounter {
   }
   
   startStepCounting() {
+    if (!this.motionPlugin) return { addListener: () => ({ remove: () => {} }) };
+    
     // Clear data and prepare for new counting session
     this.accelerationBuffer = [];
     this.calibrationSamples = [];
@@ -76,7 +97,7 @@ class MotionStepCounter {
     this.calibrationCount = 0;
     
     // Ask permission for motion sensors
-    Motion.requestPermissions();
+    this.motionPlugin.requestPermissions();
     
     // Function to get the smoothed acceleration
     const getSmoothedAcceleration = () => {
@@ -147,7 +168,7 @@ class MotionStepCounter {
     };
     
     // Start listening to accelerometer data at a higher sampling rate for Samsung A02s
-    Motion.addListener('accel', (event) => {
+    this.motionPlugin.addListener('accel', (event) => {
       detectSteps(event.acceleration);
     }, { frequency: 50 }); // Increase sampling rate for better accuracy
     
@@ -164,7 +185,9 @@ class MotionStepCounter {
   }
   
   stopStepCounting() {
-    Motion.removeAllListeners();
+    if (this.motionPlugin) {
+      this.motionPlugin.removeAllListeners();
+    }
   }
 }
 
@@ -264,6 +287,9 @@ export function useStepCounter() {
       if (!Capacitor.isNativePlatform()) return;
       
       const progress = Math.min(Math.round((currentSteps / goal) * 100), 100);
+      
+      // Dynamically import LocalNotifications
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
       
       // Create a persistent channel specifically for the step counter
       await LocalNotifications.createChannel({
