@@ -69,7 +69,7 @@ class MotionStepCounter {
   private calibrating = true;
   private calibrationSamples: number[] = []; // Store magnitudes during calibration
   private calibrationCount = 0;
-  private motionPlugin: MotionPlugin | null = null;
+  private motionPlugin: any = null;
   
   async isAvailable() {
     try {
@@ -77,7 +77,7 @@ class MotionStepCounter {
         // Dynamically import the Motion plugin
         const { Motion } = await import('@capacitor/motion');
         this.motionPlugin = Motion;
-        const result = await Motion.isAccelerometerAvailable();
+        const result = await this.motionPlugin.isAccelerometerAvailable();
         return result.isAvailable;
       }
       return false;
@@ -168,7 +168,7 @@ class MotionStepCounter {
     };
     
     // Start listening to accelerometer data at a higher sampling rate for Samsung A02s
-    this.motionPlugin.addListener('accel', (event) => {
+    this.motionPlugin.addListener('accel', (event: any) => {
       detectSteps(event.acceleration);
     }, { frequency: 50 }); // Increase sampling rate for better accuracy
     

@@ -1,4 +1,3 @@
-
 // Types for the fitness app
 
 export interface Exercise {
@@ -32,14 +31,15 @@ export interface StreakData {
   streakDates: string[]; // Array of dates in YYYY-MM-DD format
 }
 
+// Settings types
 export interface AppSettings {
   reminderEnabled: boolean;
-  reminderTime: string; // Format: "HH:MM"
+  reminderTime: string;
   voiceCuesEnabled: boolean;
   vibrationEnabled: boolean;
   dailyStepGoal: number;
-  selectedRingtone: string; // ID of selected ringtone
-  notificationPriority: "default" | "high" | "max"; // Priority level for notifications
+  selectedRingtone?: string;
+  notificationPriority?: string;
 }
 
 export interface StepData {
