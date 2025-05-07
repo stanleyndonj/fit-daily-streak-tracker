@@ -317,7 +317,6 @@ export function useStepCounter() {
               ongoing: true, // Makes the notification persistent
               channelId: "step-counter",
               smallIcon: "ic_stat_directions_walk", // Use walking icon
-              foreground: true, // Tells Android this is a foreground service notification
               actionTypeId: "",
               extra: {
                 // Samsung-specific flags to keep notification visible
