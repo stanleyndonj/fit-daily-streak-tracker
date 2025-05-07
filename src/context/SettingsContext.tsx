@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppSettings } from '@/types';
 import { Capacitor } from '@capacitor/core';
@@ -8,7 +7,7 @@ interface LocalNotificationsPlugin {
   checkPermissions: () => Promise<{ display: string }>;
   requestPermissions: () => Promise<{ display: string }>;
   cancel: (options: any) => Promise<void>;
-  schedule: (options: any) => Promise<void>;
+  schedule: (options: any) => Promise<any>; // Updated to accept any return type
   createChannel: (options: any) => Promise<void>;
 }
 

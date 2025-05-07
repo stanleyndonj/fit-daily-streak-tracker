@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { formatDateToYYYYMMDD } from '@/lib/workout-utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -5,7 +6,7 @@ import { Capacitor } from '@capacitor/core';
 
 // For TypeScript support without direct imports
 interface LocalNotificationsPlugin {
-  schedule: (options: any) => Promise<void>;
+  schedule: (options: any) => Promise<any>;
   createChannel: (options: any) => Promise<void>;
   cancel: (options: any) => Promise<void>;
 }
@@ -314,8 +315,7 @@ export function useStepCounter() {
               id: 1,
               title: "Step Tracker",
               body: `${currentSteps.toLocaleString()} / ${goal.toLocaleString()} steps (${progress}%)`,
-              ongoing: true,
-              sticky: true, // Makes notification stay in the notification panel
+              ongoing: true, // Makes the notification persistent
               channelId: "step-counter",
               smallIcon: "ic_stat_directions_walk", // Use walking icon
               importance: 3,
