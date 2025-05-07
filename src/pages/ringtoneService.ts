@@ -29,12 +29,19 @@ export const playRingtone = async (ringtoneId: string) => {
   } else {
     // For web, we could use the Web Audio API
     // This is a simple placeholder implementation
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
-    oscillator.connect(audioContext.destination);
-    oscillator.start();
-    setTimeout(() => oscillator.stop(), 500); // Stop after 0.5 seconds
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), 500); // Stop after 0.5 seconds
+      }
+    } catch (error) {
+      console.error('Error playing web audio:', error);
+    }
   }
 };

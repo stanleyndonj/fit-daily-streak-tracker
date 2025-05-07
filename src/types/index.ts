@@ -1,3 +1,4 @@
+
 // Types for the fitness app
 
 export interface Exercise {

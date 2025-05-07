@@ -10,12 +10,20 @@ let Haptics: any = undefined;
 // Dynamically import Capacitor plugins
 const importCapacitorPlugins = async () => {
   if (Capacitor.isPluginAvailable('LocalNotifications')) {
-    const module = await import('@capacitor/local-notifications');
-    LocalNotifications = module.LocalNotifications;
+    try {
+      const module = await import('@capacitor/local-notifications');
+      LocalNotifications = module.LocalNotifications;
+    } catch (error) {
+      console.error('Error importing LocalNotifications:', error);
+    }
   }
   if (Capacitor.isPluginAvailable('Haptics')) {
-    const module = await import('@capacitor/haptics');
-    Haptics = module.Haptics;
+    try {
+      const module = await import('@capacitor/haptics');
+      Haptics = module.Haptics;
+    } catch (error) {
+      console.error('Error importing Haptics:', error);
+    }
   }
 };
 

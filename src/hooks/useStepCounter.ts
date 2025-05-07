@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { formatDateToYYYYMMDD } from '@/lib/workout-utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -75,10 +74,15 @@ class MotionStepCounter {
     try {
       if (Capacitor.isNativePlatform()) {
         // Dynamically import the Motion plugin
-        const { Motion } = await import('@capacitor/motion');
-        this.motionPlugin = Motion;
-        const result = await this.motionPlugin.isAccelerometerAvailable();
-        return result.isAvailable;
+        try {
+          const { Motion } = await import('@capacitor/motion');
+          this.motionPlugin = Motion;
+          const result = await this.motionPlugin.isAccelerometerAvailable();
+          return result.isAvailable;
+        } catch (error) {
+          console.error('Error importing Motion plugin:', error);
+          return false;
+        }
       }
       return false;
     } catch (e) {
@@ -289,42 +293,46 @@ export function useStepCounter() {
       const progress = Math.min(Math.round((currentSteps / goal) * 100), 100);
       
       // Dynamically import LocalNotifications
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
-      
-      // Create a persistent channel specifically for the step counter
-      await LocalNotifications.createChannel({
-        id: "step-counter",
-        name: "Step Counter",
-        description: "Persistent notification showing your step count",
-        importance: 3, // Default priority (less intrusive but visible)
-        visibility: 1,
-        lights: false,
-        vibration: false
-      });
-      
-      // Schedule a foreground-service-style persistent notification
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: 1,
-            title: "Step Tracker",
-            body: `${currentSteps.toLocaleString()} / ${goal.toLocaleString()} steps (${progress}%)`,
-            ongoing: true,
-            sticky: true, // Makes notification stay in the notification panel
-            channelId: "step-counter",
-            smallIcon: "ic_stat_directions_walk", // Use walking icon
-            importance: 3,
-            foreground: true, // Tells Android this is a foreground service notification
-            actionTypeId: "",
-            extra: {
-              // Samsung-specific flags to keep notification visible
-              lockScreenVisibility: 1,
-              priority: "default",
-              persistentNotification: true
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        
+        // Create a persistent channel specifically for the step counter
+        await LocalNotifications.createChannel({
+          id: "step-counter",
+          name: "Step Counter",
+          description: "Persistent notification showing your step count",
+          importance: 3, // Default priority (less intrusive but visible)
+          visibility: 1,
+          lights: false,
+          vibration: false
+        });
+        
+        // Schedule a foreground-service-style persistent notification
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 1,
+              title: "Step Tracker",
+              body: `${currentSteps.toLocaleString()} / ${goal.toLocaleString()} steps (${progress}%)`,
+              ongoing: true,
+              sticky: true, // Makes notification stay in the notification panel
+              channelId: "step-counter",
+              smallIcon: "ic_stat_directions_walk", // Use walking icon
+              importance: 3,
+              foreground: true, // Tells Android this is a foreground service notification
+              actionTypeId: "",
+              extra: {
+                // Samsung-specific flags to keep notification visible
+                lockScreenVisibility: 1,
+                priority: "default",
+                persistentNotification: true
+              }
             }
-          }
-        ]
-      });
+          ]
+        });
+      } catch (error) {
+        console.error('Error importing LocalNotifications:', error);
+      }
     } catch (error) {
       console.error('Error updating notification:', error);
     }
