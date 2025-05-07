@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { formatDateToYYYYMMDD } from '@/lib/workout-utils';
 import { useSettings } from '@/context/SettingsContext';
@@ -318,7 +317,6 @@ export function useStepCounter() {
               ongoing: true, // Makes the notification persistent
               channelId: "step-counter",
               smallIcon: "ic_stat_directions_walk", // Use walking icon
-              importance: 3,
               foreground: true, // Tells Android this is a foreground service notification
               actionTypeId: "",
               extra: {
