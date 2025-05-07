@@ -17,22 +17,24 @@ interface HapticsPlugin {
 }
 
 // Import Capacitor plugins conditionally
-let LocalNotifications: { LocalNotifications: LocalNotificationsPlugin } | undefined = undefined;
-let Haptics: { Haptics: HapticsPlugin } | undefined = undefined;
+let LocalNotifications: LocalNotificationsPlugin | undefined = undefined;
+let Haptics: HapticsPlugin | undefined = undefined;
 
 // Dynamically import Capacitor plugins
 const importCapacitorPlugins = async () => {
   if (Capacitor.isNativePlatform()) {
     if (Capacitor.isPluginAvailable('LocalNotifications')) {
       try {
-        LocalNotifications = await import('@capacitor/local-notifications' /* webpackIgnore: true */);
+        const module = await import('@capacitor/local-notifications' /* webpackIgnore: true */);
+        LocalNotifications = module.LocalNotifications;
       } catch (error) {
         console.error('Error importing LocalNotifications:', error);
       }
     }
     if (Capacitor.isPluginAvailable('Haptics')) {
       try {
-        Haptics = await import('@capacitor/haptics' /* webpackIgnore: true */);
+        const module = await import('@capacitor/haptics' /* webpackIgnore: true */);
+        Haptics = module.Haptics;
       } catch (error) {
         console.error('Error importing Haptics:', error);
       }
@@ -88,13 +90,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Initialize notifications
   const initializeNotifications = async () => {
-    if (!Capacitor.isNativePlatform() || !LocalNotifications?.LocalNotifications) return;
+    if (!Capacitor.isNativePlatform() || !LocalNotifications) return;
     
     try {
-      const { display } = await LocalNotifications.LocalNotifications.checkPermissions();
+      const { display } = await LocalNotifications.checkPermissions();
       
       if (display !== 'granted') {
-        await LocalNotifications.LocalNotifications.requestPermissions();
+        await LocalNotifications.requestPermissions();
       }
     } catch (error) {
       console.error('Error initializing notifications:', error);
@@ -125,13 +127,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Request notification permissions
   const setupNotificationPermissions = async (): Promise<boolean> => {
-    if (!Capacitor.isNativePlatform() || !LocalNotifications?.LocalNotifications) {
+    if (!Capacitor.isNativePlatform() || !LocalNotifications) {
       console.log('Not on a native platform or LocalNotifications not available, simulating successful permission');
       return true;
     }
 
     try {
-      const { display } = await LocalNotifications.LocalNotifications.requestPermissions();
+      const { display } = await LocalNotifications.requestPermissions();
       return display === 'granted';
     } catch (error) {
       console.error('Error requesting notification permissions:', error);
@@ -141,11 +143,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Schedule daily reminder with improved reliability for Samsung devices
   const scheduleReminder = async (): Promise<void> => {
-    if (!settings.reminderEnabled || !Capacitor.isNativePlatform() || !LocalNotifications?.LocalNotifications) return;
+    if (!settings.reminderEnabled || !Capacitor.isNativePlatform() || !LocalNotifications) return;
     
     try {
       // First clear any existing reminders
-      await LocalNotifications.LocalNotifications.cancel({ notifications: [{ id: 100 }] });
+      await LocalNotifications.cancel({ notifications: [{ id: 100 }] });
       
       // Parse reminder time
       const [hours, minutes] = settings.reminderTime.split(':').map(Number);
@@ -167,7 +169,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       
       // Schedule with improved options for Samsung devices
-      await LocalNotifications.LocalNotifications.schedule({
+      await LocalNotifications.schedule({
         notifications: [
           {
             id: 100,
@@ -199,7 +201,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // Create a channel specifically for workout reminders (Samsung needs this)
       if (Capacitor.isNativePlatform()) {
-        await LocalNotifications.LocalNotifications.createChannel({
+        await LocalNotifications.createChannel({
           id: "workout-reminders",
           name: "Workout Reminders",
           description: "Notification channel for workout reminders",
@@ -213,8 +215,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       
       // Trigger haptic feedback to confirm reminder set
-      if (settings.vibrationEnabled && Haptics?.Haptics) {
-        await Haptics.Haptics.vibrate();
+      if (settings.vibrationEnabled && Haptics) {
+        await Haptics.vibrate();
       }
       
       console.log('Reminder scheduled for', triggerTime, 'with sound', soundName);

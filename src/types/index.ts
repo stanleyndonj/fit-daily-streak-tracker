@@ -1,4 +1,3 @@
-
 // Types for the fitness app
 
 export interface Exercise {
@@ -39,8 +38,8 @@ export interface AppSettings {
   voiceCuesEnabled: boolean;
   vibrationEnabled: boolean;
   dailyStepGoal: number;
-  selectedRingtone?: string;
-  notificationPriority?: string;
+  selectedRingtone: string;
+  notificationPriority: string;
 }
 
 export interface StepData {
