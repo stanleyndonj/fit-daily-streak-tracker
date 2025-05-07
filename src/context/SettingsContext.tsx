@@ -1,9 +1,32 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppSettings } from '@/types';
-import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
-import { Haptics } from '@capacitor/haptics';
+
+// Import Capacitor plugins conditionally
+let LocalNotifications: any = undefined;
+let Haptics: any = undefined;
+
+// Dynamically import Capacitor plugins
+const importCapacitorPlugins = async () => {
+  if (Capacitor.isPluginAvailable('LocalNotifications')) {
+    const module = await import('@capacitor/local-notifications');
+    LocalNotifications = module.LocalNotifications;
+  }
+  if (Capacitor.isPluginAvailable('Haptics')) {
+    const module = await import('@capacitor/haptics');
+    Haptics = module.Haptics;
+  }
+};
+
+// Available ringtones for Android
+export const AVAILABLE_RINGTONES = [
+  { id: "default", name: "Default" },
+  { id: "alarm", name: "Alarm" },
+  { id: "notification", name: "Notification" },
+  { id: "ringtone", name: "Ringtone" },
+  { id: "beep", name: "Beep" }
+];
 
 // Default settings
 const defaultSettings: AppSettings = {
@@ -15,15 +38,6 @@ const defaultSettings: AppSettings = {
   selectedRingtone: "default",
   notificationPriority: "high"
 };
-
-// Available ringtones for Android
-export const AVAILABLE_RINGTONES = [
-  { id: "default", name: "Default" },
-  { id: "alarm", name: "Alarm" },
-  { id: "notification", name: "Notification" },
-  { id: "ringtone", name: "Ringtone" },
-  { id: "beep", name: "Beep" }
-];
 
 // Context type definition
 interface SettingsContextType {
@@ -37,22 +51,24 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+  const [pluginsLoaded, setPluginsLoaded] = useState(false);
 
+  // Load Capacitor plugins on component mount if on native platform
   useEffect(() => {
-    // Load settings from localStorage
-    const storedSettings = localStorage.getItem('fit-daily-settings');
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
-    }
-
-    // Initialize notifications if we're on a native platform
     if (Capacitor.isNativePlatform()) {
-      initializeNotifications();
+      importCapacitorPlugins().then(() => {
+        setPluginsLoaded(true);
+        initializeNotifications();
+      });
+    } else {
+      setPluginsLoaded(true);
     }
   }, []);
 
   // Initialize notifications
   const initializeNotifications = async () => {
+    if (!Capacitor.isNativePlatform() || !LocalNotifications) return;
+    
     try {
       const { display } = await LocalNotifications.checkPermissions();
       
@@ -64,22 +80,32 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const storedSettings = localStorage.getItem('fit-daily-settings');
+    if (storedSettings) {
+      setSettings(JSON.parse(storedSettings));
+    }
+  }, []);
+
+  // Setup schedule when settings or plugins change
+  useEffect(() => {
+    if (pluginsLoaded && settings.reminderEnabled) {
+      scheduleReminder();
+    }
+  }, [pluginsLoaded, settings.reminderEnabled, settings.reminderTime]);
+
   // Update settings and save to localStorage
   const updateSettings = (newSettings: Partial<AppSettings>) => {
     const updatedSettings = { ...settings, ...newSettings };
     setSettings(updatedSettings);
     localStorage.setItem('fit-daily-settings', JSON.stringify(updatedSettings));
-    
-    // Schedule reminder if enabled
-    if (updatedSettings.reminderEnabled) {
-      scheduleReminder();
-    }
   };
 
   // Request notification permissions
   const setupNotificationPermissions = async (): Promise<boolean> => {
-    if (!Capacitor.isNativePlatform()) {
-      console.log('Not on a native platform, simulating successful permission');
+    if (!Capacitor.isNativePlatform() || !LocalNotifications) {
+      console.log('Not on a native platform or LocalNotifications not available, simulating successful permission');
       return true;
     }
 
@@ -94,7 +120,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Schedule daily reminder with improved reliability for Samsung devices
   const scheduleReminder = async (): Promise<void> => {
-    if (!settings.reminderEnabled) return;
+    if (!settings.reminderEnabled || !Capacitor.isNativePlatform() || !LocalNotifications) return;
     
     try {
       // First clear any existing reminders
@@ -166,7 +192,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       
       // Trigger haptic feedback to confirm reminder set
-      if (settings.vibrationEnabled && Capacitor.isNativePlatform()) {
+      if (settings.vibrationEnabled && Haptics) {
         await Haptics.vibrate();
       }
       

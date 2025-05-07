@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, Volume2, Vibrate } from 'lucide-react';
@@ -7,26 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useSettings } from '@/context/SettingsContext';
+import { useSettings, AVAILABLE_RINGTONES } from '@/context/SettingsContext';
 import { toast } from "sonner";
-import { getRingtones } from './ringtoneService'; // Placeholder; needs implementation
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, setupNotificationPermissions, scheduleReminder } = useSettings();
 
   const [reminderEnabled, setReminderEnabled] = useState(settings.reminderEnabled);
   const [reminderTime, setReminderTime] = useState(settings.reminderTime || "07:00");
   const [voiceCuesEnabled, setVoiceCuesEnabled] = useState(settings.voiceCuesEnabled);
   const [vibrationEnabled, setVibrationEnabled] = useState(settings.vibrationEnabled);
   const [dailyStepGoal, setDailyStepGoal] = useState(settings.dailyStepGoal);
-  const [selectedRingtone, setSelectedRingtone] = useState(settings.ringtone || '');
-  const [ringtones, setRingtones] = useState([]);
-
-  useEffect(() => {
-    getRingtones().then(ringtones => setRingtones(ringtones));
-  }, []);
+  const [selectedRingtone, setSelectedRingtone] = useState(settings.selectedRingtone || 'default');
 
   // Save settings when they change
   const saveSettings = () => {
@@ -36,8 +31,13 @@ const SettingsPage = () => {
       voiceCuesEnabled,
       vibrationEnabled,
       dailyStepGoal: Number(dailyStepGoal) || 5000,
-      ringtone: selectedRingtone,
+      selectedRingtone,
     });
+    
+    // Schedule reminder if enabled
+    if (reminderEnabled) {
+      scheduleReminder();
+    }
 
     toast.success("Settings saved successfully");
   };
@@ -47,7 +47,7 @@ const SettingsPage = () => {
     setReminderEnabled(checked);
     if (checked) {
       // Request notification permissions
-      const granted = await updateSettings.setupNotificationPermissions();
+      const granted = await setupNotificationPermissions();
       if (granted) {
         toast.success("Daily reminder notifications enabled");
       } else {
@@ -104,12 +104,18 @@ const SettingsPage = () => {
                   </div>
                   <div className="mt-4">
                     <Label htmlFor="ringtone-select">Ringtone</Label>
-                    <select id="ringtone-select" value={selectedRingtone} onChange={e => setSelectedRingtone(e.target.value)}>
-                      <option value="">Default</option>
-                      {ringtones.map(ringtone => (
-                        <option key={ringtone.id} value={ringtone.path}>{ringtone.name}</option>
-                      ))}
-                    </select>
+                    <Select value={selectedRingtone} onValueChange={setSelectedRingtone}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a ringtone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AVAILABLE_RINGTONES.map(ringtone => (
+                          <SelectItem key={ringtone.id} value={ringtone.id}>
+                            {ringtone.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </>
               )}
@@ -165,8 +171,6 @@ const SettingsPage = () => {
                   Set your daily step count target
                 </p>
               </div>
-              {/* Placeholder for improved step tracking implementation */}
-              <p>Improved step tracking algorithm will be implemented here.</p>
             </CardContent>
           </Card>
 
