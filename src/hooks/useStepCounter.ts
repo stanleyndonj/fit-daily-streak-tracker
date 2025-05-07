@@ -12,7 +12,7 @@ interface LocalNotificationsPlugin {
 
 interface MotionPlugin {
   isAccelerometerAvailable: () => Promise<{ isAvailable: boolean }>;
-  addListener: (eventName: string, callback: (event: any) => void, options?: any) => void;
+  addListener: (eventName: string, callback: (event: any) => void, options?: any) => Promise<void>;
   requestPermissions: () => Promise<void>;
   removeAllListeners: () => Promise<void>;
 }
@@ -75,7 +75,7 @@ class MotionStepCounter {
       if (Capacitor.isNativePlatform()) {
         // Dynamically import the Motion plugin
         try {
-          const { Motion } = await import('@capacitor/motion');
+          const { Motion } = await import('@capacitor/motion' /* webpackIgnore: true */);
           this.motionPlugin = Motion;
           const result = await this.motionPlugin.isAccelerometerAvailable();
           return result.isAvailable;
@@ -294,7 +294,7 @@ export function useStepCounter() {
       
       // Dynamically import LocalNotifications
       try {
-        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        const { LocalNotifications } = await import('@capacitor/local-notifications' /* webpackIgnore: true */);
         
         // Create a persistent channel specifically for the step counter
         await LocalNotifications.createChannel({
