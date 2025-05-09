@@ -1,5 +1,4 @@
 
-
 export interface Exercise {
   id: string;
   name: string;
@@ -41,4 +40,5 @@ export interface AppSettings {
   dailyStepGoal: number;
   selectedRingtone: string;
   notificationPriority: string;
+  notifyInBackground: boolean; // Added for background notifications
 }

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, Volume2, Vibrate, Calendar } from 'lucide-react';
@@ -30,6 +31,7 @@ const SettingsPage = () => {
   const [vibrationEnabled, setVibrationEnabled] = useState(settings.vibrationEnabled);
   const [dailyStepGoal, setDailyStepGoal] = useState(settings.dailyStepGoal);
   const [selectedRingtone, setSelectedRingtone] = useState(settings.selectedRingtone || 'default');
+  const [notifyInBackground, setNotifyInBackground] = useState(settings.notifyInBackground ?? true);
 
   // Save settings when they change
   const saveSettings = () => {
@@ -42,6 +44,7 @@ const SettingsPage = () => {
       vibrationEnabled,
       dailyStepGoal: Number(dailyStepGoal) || 5000,
       selectedRingtone,
+      notifyInBackground,
     });
     
     // Schedule reminder if enabled
@@ -167,6 +170,19 @@ const SettingsPage = () => {
                       Weekdays only (Monday-Friday)
                     </label>
                   </div>
+                  
+                  <div className="flex items-center justify-between mt-4">
+                    <Label htmlFor="background-notify">Notify even when app is closed</Label>
+                    <Switch 
+                      id="background-notify" 
+                      checked={notifyInBackground}
+                      onCheckedChange={setNotifyInBackground}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Enable to receive notifications even when the app is not open. 
+                    This may require additional permissions on some devices.
+                  </p>
 
                   <div className="mt-4">
                     <Label htmlFor="ringtone-select">Ringtone</Label>

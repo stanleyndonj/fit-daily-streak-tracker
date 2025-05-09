@@ -10,17 +10,24 @@ interface LocalNotificationsPlugin {
   checkPermissions: () => Promise<{ display: string }>;
   requestPermissions: () => Promise<{ display: string }>;
   cancel: (options: any) => Promise<void>;
-  schedule: (options: any) => Promise<any>; // Updated to accept any return type
+  schedule: (options: any) => Promise<any>;
   createChannel: (options: any) => Promise<void>;
+  registerActionTypes: (options: any) => Promise<void>;
 }
 
 interface HapticsPlugin {
   vibrate: () => Promise<void>;
 }
 
+interface AppPlugin {
+  addListener: (eventName: string, callback: any) => Promise<any>;
+  exitApp: () => Promise<void>;
+}
+
 // Import Capacitor plugins conditionally
 let LocalNotifications: LocalNotificationsPlugin | undefined = undefined;
 let Haptics: HapticsPlugin | undefined = undefined;
+let App: AppPlugin | undefined = undefined;
 
 // Dynamically import Capacitor plugins
 const importCapacitorPlugins = async () => {
@@ -39,6 +46,14 @@ const importCapacitorPlugins = async () => {
         Haptics = module.Haptics;
       } catch (error) {
         console.error('Error importing Haptics:', error);
+      }
+    }
+    if (Capacitor.isPluginAvailable('App')) {
+      try {
+        const module = await import('@capacitor/app' /* webpackIgnore: true */);
+        App = module.App;
+      } catch (error) {
+        console.error('Error importing App:', error);
       }
     }
   }
@@ -63,7 +78,8 @@ const defaultSettings: AppSettings = {
   vibrationEnabled: true,
   dailyStepGoal: 5000,
   selectedRingtone: "default",
-  notificationPriority: "high"
+  notificationPriority: "high",
+  notifyInBackground: true
 };
 
 // Context type definition
@@ -92,6 +108,47 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
+  // Setup notification listeners
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || !LocalNotifications) return;
+    
+    // Register action types
+    const setupNotificationActions = async () => {
+      try {
+        await LocalNotifications.registerActionTypes({
+          types: [
+            {
+              id: 'WORKOUT_ACTIONS',
+              actions: [
+                {
+                  id: 'open',
+                  title: 'Open App'
+                },
+                {
+                  id: 'snooze',
+                  title: 'Snooze (10 min)'
+                }
+              ]
+            }
+          ]
+        });
+      } catch (error) {
+        console.error('Error setting up notification actions:', error);
+      }
+    };
+    
+    setupNotificationActions();
+    
+    // Create notification channel for Android
+    if (Capacitor.getPlatform() === 'android') {
+      createNotificationChannel();
+    }
+    
+    return () => {
+      // Cleanup can be added here if needed
+    };
+  }, [pluginsLoaded]);
+
   // Initialize notifications
   const initializeNotifications = async () => {
     if (!Capacitor.isNativePlatform() || !LocalNotifications) return;
@@ -104,6 +161,27 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (error) {
       console.error('Error initializing notifications:', error);
+    }
+  };
+  
+  // Create a notification channel for Android
+  const createNotificationChannel = async () => {
+    if (!LocalNotifications) return;
+    
+    try {
+      await LocalNotifications.createChannel({
+        id: "workout-reminders",
+        name: "Workout Reminders",
+        description: "Notification channel for workout reminders",
+        importance: 4,
+        visibility: 1,
+        sound: settings.selectedRingtone,
+        vibration: settings.vibrationEnabled,
+        lights: true,
+        lightColor: "#488AFF"
+      });
+    } catch (error) {
+      console.error('Error creating notification channel:', error);
     }
   };
 
@@ -125,7 +203,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     settings.reminderEnabled, 
     settings.reminderTime, 
     settings.reminderDate,
-    settings.weekdaysOnly
+    settings.weekdaysOnly,
+    settings.notifyInBackground
   ]);
 
   // Update settings and save to localStorage
@@ -203,13 +282,22 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // Determine if this is a repeating notification
       const isRepeating = !settings.reminderDate;
-      const scheduleOptions = {
+      const scheduleOptions: any = {
         at: triggerTime,
         every: isRepeating ? 'day' : undefined,
         repeats: isRepeating,
         allowWhileIdle: true,  // Allow notification even when device is idle
-        count: 1  // Number of times to repeat notification if missed
+        foreground: true  // Show notification even when app is in foreground
       };
+      
+      // Special handling for exact scheduling on Android
+      if (Capacitor.getPlatform() === 'android') {
+        scheduleOptions.schedule = {
+          exact: true,
+          wakeup: true,
+          allowInForeground: true
+        };
+      }
       
       // Schedule notification
       await LocalNotifications.schedule({
@@ -227,30 +315,17 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             largeIcon: "ic_stat_notification",
             importance: 4,  // HIGH priority (Samsung needs higher priority)
             vibration: settings.vibrationEnabled,
-            actionTypeId: "",
+            actionTypeId: "WORKOUT_ACTIONS",
             extra: {
               channelName: "Workout Reminders",
               priority: settings.notificationPriority,
-              weekdaysOnly: settings.weekdaysOnly
+              weekdaysOnly: settings.weekdaysOnly,
+              exactAlarm: true,
+              notifyInBackground: settings.notifyInBackground
             }
           }
         ]
       });
-      
-      // Create a channel specifically for workout reminders (Samsung needs this)
-      if (Capacitor.isNativePlatform()) {
-        await LocalNotifications.createChannel({
-          id: "workout-reminders",
-          name: "Workout Reminders",
-          description: "Notification channel for workout reminders",
-          importance: 4,
-          visibility: 1,
-          sound: soundName,
-          vibration: settings.vibrationEnabled,
-          lights: true,
-          lightColor: "#488AFF"
-        });
-      }
       
       // Trigger haptic feedback to confirm reminder set
       if (settings.vibrationEnabled && Haptics) {

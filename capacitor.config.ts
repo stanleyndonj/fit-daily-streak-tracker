@@ -18,8 +18,9 @@ const config: CapacitorConfig = {
       iconColor: "#488AFF",
       sound: "notification",
       importance: 4, // High priority for Samsung devices
+      foreground: true, // Show even when app is in foreground
     },
-    // Android permissions - expanded for Samsung compatibility
+    // Android permissions - expanded for Samsung compatibility and background notifications
     PermissionsAndroid: {
       permissions: [
         "android.permission.ACTIVITY_RECOGNITION",
@@ -29,7 +30,9 @@ const config: CapacitorConfig = {
         "android.permission.WAKE_LOCK",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.ACCESS_NOTIFICATION_POLICY",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM"
       ]
     },
     // Motion settings
