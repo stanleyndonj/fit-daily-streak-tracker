@@ -1,8 +1,9 @@
 
+
 export interface Exercise {
   id: string;
   name: string;
-  type: 'reps' | 'time';
+  type: 'reps' | 'time' | 'distance';
   target: number;
   sets: number;
 }
