@@ -17,8 +17,12 @@ const config: CapacitorConfig = {
       smallIcon: "ic_stat_directions_walk",
       iconColor: "#488AFF",
       sound: "notification",
-      importance: 4, // High priority for Samsung devices
+      importance: 5, // Maximum importance for Android (was 4)
       foreground: true, // Show even when app is in foreground
+      schedule: {
+        precision: "exact", // Use exact precision timing
+        allowWhileIdle: true, // Allow notifications when device idle
+      }
     },
     // Android permissions - expanded for Samsung compatibility and background notifications
     PermissionsAndroid: {
@@ -32,7 +36,8 @@ const config: CapacitorConfig = {
         "android.permission.ACCESS_NOTIFICATION_POLICY",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.USE_EXACT_ALARM"
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" // Added to allow waking from deep sleep
       ]
     },
     // Motion settings
