@@ -39,22 +39,33 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     lastCompletionDate: null,
     streakDates: []
   });
+  
+  // Track if this is the first load to determine if we should create a sample workout
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // Load data from localStorage on initial render
   useEffect(() => {
     const storedWorkouts = loadWorkouts();
     const storedCompletions = loadCompletions();
     
-    // If no workouts, create a sample workout for new users
-    if (storedWorkouts.length === 0) {
+    // Only create a sample workout for first-time users
+    // Check localStorage for a flag indicating if the app has been used before
+    const hasUsedBefore = localStorage.getItem('fit-daily-first-launch');
+    
+    if (storedWorkouts.length === 0 && !hasUsedBefore) {
+      // First time users - create sample workout
       const sampleWorkout = createSampleWorkout();
       setWorkouts([sampleWorkout]);
       saveWorkouts([sampleWorkout]);
+      // Set the flag to indicate app has been used before
+      localStorage.setItem('fit-daily-first-launch', 'true');
     } else {
+      // Returning users - just load their workouts
       setWorkouts(storedWorkouts);
     }
     
     setCompletions(storedCompletions);
+    setIsFirstLoad(false);
   }, []);
 
   // Update streak data whenever completions change

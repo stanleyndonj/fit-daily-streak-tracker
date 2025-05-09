@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Volume2, Vibrate } from 'lucide-react';
+import { ArrowLeft, Bell, Volume2, Vibrate, Calendar } from 'lucide-react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,10 @@ import { useSettings, AVAILABLE_RINGTONES } from '@/context/SettingsContext';
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { playRingtone } from './ringtoneService';
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -18,6 +22,10 @@ const SettingsPage = () => {
 
   const [reminderEnabled, setReminderEnabled] = useState(settings.reminderEnabled);
   const [reminderTime, setReminderTime] = useState(settings.reminderTime || "07:00");
+  const [reminderDate, setReminderDate] = useState<Date | undefined>(
+    settings.reminderDate ? new Date(settings.reminderDate) : undefined
+  );
+  const [weekdaysOnly, setWeekdaysOnly] = useState(settings.weekdaysOnly || false);
   const [voiceCuesEnabled, setVoiceCuesEnabled] = useState(settings.voiceCuesEnabled);
   const [vibrationEnabled, setVibrationEnabled] = useState(settings.vibrationEnabled);
   const [dailyStepGoal, setDailyStepGoal] = useState(settings.dailyStepGoal);
@@ -28,6 +36,8 @@ const SettingsPage = () => {
     updateSettings({
       reminderEnabled,
       reminderTime,
+      reminderDate: reminderDate ? reminderDate.toISOString() : undefined,
+      weekdaysOnly,
       voiceCuesEnabled,
       vibrationEnabled,
       dailyStepGoal: Number(dailyStepGoal) || 5000,
@@ -105,10 +115,59 @@ const SettingsPage = () => {
                       onChange={(e) => setReminderTime(e.target.value)}
                       className="w-full"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      You will receive a daily notification at this time.
-                    </p>
                   </div>
+                  
+                  <div className="mt-4">
+                    <Label htmlFor="reminder-date" className="block mb-2">Reminder date (optional)</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="reminder-date"
+                          variant={"outline"}
+                          className={`w-full justify-start text-left font-normal ${!reminderDate && "text-muted-foreground"}`}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {reminderDate ? format(reminderDate, "PPP") : "Pick a specific date (optional)"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarComponent
+                          mode="single"
+                          selected={reminderDate}
+                          onSelect={setReminderDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <div className="mt-2 flex items-start space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setReminderDate(undefined)}
+                        disabled={!reminderDate}
+                      >
+                        Clear date
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        If no date is selected, reminder will be scheduled daily.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Checkbox 
+                      id="weekdays-only" 
+                      checked={weekdaysOnly}
+                      onCheckedChange={(checked) => setWeekdaysOnly(checked === true)}
+                    />
+                    <label
+                      htmlFor="weekdays-only"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Weekdays only (Monday-Friday)
+                    </label>
+                  </div>
+
                   <div className="mt-4">
                     <Label htmlFor="ringtone-select">Ringtone</Label>
                     <Select value={selectedRingtone} onValueChange={handleRingtoneSelect}>

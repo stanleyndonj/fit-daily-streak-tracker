@@ -1,11 +1,10 @@
-// Types for the fitness app
 
 export interface Exercise {
   id: string;
   name: string;
-  type: 'reps' | 'time' | 'distance';
-  target: number; // Number of reps, seconds, or meters
-  sets?: number;
+  type: 'reps' | 'time';
+  target: number;
+  sets: number;
 }
 
 export interface Workout {
@@ -19,31 +18,26 @@ export interface Workout {
 export interface WorkoutCompletion {
   id: string;
   workoutId: string;
-  date: string; // YYYY-MM-DD format
-  completedExercises: string[]; // Array of exercise IDs
-  notes?: string; // Added for journal/notes feature
+  date: string;
+  completedExercises: string[];
+  notes?: string;
 }
 
 export interface StreakData {
   currentStreak: number;
   longestStreak: number;
-  lastCompletionDate: string | null; // YYYY-MM-DD format
-  streakDates: string[]; // Array of dates in YYYY-MM-DD format
+  lastCompletionDate: string | null;
+  streakDates: string[];
 }
 
-// Settings types
 export interface AppSettings {
   reminderEnabled: boolean;
   reminderTime: string;
+  reminderDate?: string;
+  weekdaysOnly: boolean;
   voiceCuesEnabled: boolean;
   vibrationEnabled: boolean;
   dailyStepGoal: number;
   selectedRingtone: string;
   notificationPriority: string;
-}
-
-export interface StepData {
-  date: string; // YYYY-MM-DD format
-  count: number;
-  baselineCount: number; // The count at the start of the day
 }

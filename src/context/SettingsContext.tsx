@@ -1,6 +1,8 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppSettings } from '@/types';
 import { Capacitor } from '@capacitor/core';
+import { format, isWeekend } from 'date-fns';
 
 // Define interfaces for type safety when using dynamic imports
 interface LocalNotificationsPlugin {
@@ -54,6 +56,8 @@ export const AVAILABLE_RINGTONES = [
 const defaultSettings: AppSettings = {
   reminderEnabled: false,
   reminderTime: "07:00",
+  reminderDate: undefined,
+  weekdaysOnly: false,
   voiceCuesEnabled: false,
   vibrationEnabled: true,
   dailyStepGoal: 5000,
@@ -115,7 +119,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (pluginsLoaded && settings.reminderEnabled) {
       scheduleReminder();
     }
-  }, [pluginsLoaded, settings.reminderEnabled, settings.reminderTime]);
+  }, [
+    pluginsLoaded, 
+    settings.reminderEnabled, 
+    settings.reminderTime, 
+    settings.reminderDate,
+    settings.weekdaysOnly
+  ]);
 
   // Update settings and save to localStorage
   const updateSettings = (newSettings: Partial<AppSettings>) => {
@@ -140,7 +150,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Schedule daily reminder with improved reliability for Samsung devices
+  // Schedule workout reminder with improved reliability
   const scheduleReminder = async (): Promise<void> => {
     if (!settings.reminderEnabled || !Capacitor.isNativePlatform() || !LocalNotifications) return;
     
@@ -151,14 +161,37 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Parse reminder time
       const [hours, minutes] = settings.reminderTime.split(':').map(Number);
       
-      // Set up the trigger time
+      // Set up the trigger time based on user's preferences
       const now = new Date();
-      const triggerTime = new Date();
-      triggerTime.setHours(hours, minutes, 0);
+      let triggerTime: Date;
       
-      // If the time has passed today, schedule for tomorrow
-      if (triggerTime <= now) {
-        triggerTime.setDate(triggerTime.getDate() + 1);
+      if (settings.reminderDate) {
+        // Use specific date if provided
+        triggerTime = new Date(settings.reminderDate);
+        triggerTime.setHours(hours, minutes, 0);
+        
+        // If the date has already passed, don't schedule
+        if (triggerTime < now) {
+          toast.error("The selected date has already passed. Please select a future date.");
+          return;
+        }
+      } else {
+        // Use today/tomorrow for daily reminders
+        triggerTime = new Date();
+        triggerTime.setHours(hours, minutes, 0);
+        
+        // If the time has passed today, schedule for tomorrow
+        if (triggerTime <= now) {
+          triggerTime.setDate(triggerTime.getDate() + 1);
+        }
+        
+        // If weekdaysOnly is enabled and the triggerTime falls on a weekend, move to Monday
+        if (settings.weekdaysOnly && isWeekend(triggerTime)) {
+          // Move to next Monday
+          const dayOfWeek = triggerTime.getDay(); // 0 for Sunday, 6 for Saturday
+          const daysToAdd = dayOfWeek === 0 ? 1 : 2; // Add 1 day for Sunday, 2 days for Saturday
+          triggerTime.setDate(triggerTime.getDate() + daysToAdd);
+        }
       }
       
       // Samsung devices sometimes need extra parameters for reliable notifications
@@ -167,20 +200,24 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         soundName = 'notification';  // Fallback to standard notification sound
       }
       
-      // Schedule with improved options for Samsung devices
+      // Determine if this is a repeating notification
+      const isRepeating = !settings.reminderDate;
+      const scheduleOptions = {
+        at: triggerTime,
+        every: isRepeating ? 'day' : undefined,
+        repeats: isRepeating,
+        allowWhileIdle: true,  // Allow notification even when device is idle
+        count: 1  // Number of times to repeat notification if missed
+      };
+      
+      // Schedule notification
       await LocalNotifications.schedule({
         notifications: [
           {
             id: 100,
             title: "Workout Reminder",
             body: "It's time for your workout! Stay on track with your fitness goals.",
-            schedule: { 
-              at: triggerTime,
-              repeats: true,
-              every: 'day',
-              allowWhileIdle: true,  // Allow notification even when device is idle
-              count: 1  // Number of times to repeat notification if missed
-            },
+            schedule: scheduleOptions,
             sound: soundName,
             ongoing: false,
             autoCancel: true,
@@ -192,7 +229,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             actionTypeId: "",
             extra: {
               channelName: "Workout Reminders",
-              priority: settings.notificationPriority
+              priority: settings.notificationPriority,
+              weekdaysOnly: settings.weekdaysOnly
             }
           }
         ]
@@ -218,9 +256,16 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await Haptics.vibrate();
       }
       
+      const formattedDate = format(triggerTime, "PPP 'at' p");
+      const repeatInfo = isRepeating ? 
+        (settings.weekdaysOnly ? " (repeats on weekdays only)" : " (repeats daily)") : 
+        " (one-time)";
+        
+      toast.success(`Reminder scheduled for ${formattedDate}${repeatInfo}`);
       console.log('Reminder scheduled for', triggerTime, 'with sound', soundName);
     } catch (error) {
       console.error('Error scheduling reminder:', error);
+      toast.error("Failed to schedule reminder. Please try again.");
     }
   };
 
