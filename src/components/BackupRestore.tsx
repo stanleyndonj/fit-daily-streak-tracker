@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { createBackup, restoreBackup } from '@/lib/backup-utils';
-import { DatabaseBackup, DatabaseRestore } from 'lucide-react';
+import { DatabaseBackup, Database } from 'lucide-react';
 
 const BackupRestore: React.FC = () => {
   const [isRestoring, setIsRestoring] = useState(false);
@@ -57,7 +57,7 @@ const BackupRestore: React.FC = () => {
             className="w-full flex items-center gap-2"
             disabled={isRestoring}
           >
-            <DatabaseRestore className="h-4 w-4" />
+            <Database className="h-4 w-4" />
             Restore Backup
           </Button>
           <input
