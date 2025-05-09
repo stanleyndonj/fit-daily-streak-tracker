@@ -106,6 +106,10 @@ export default {
 				'shimmer': {
 					'0%': { backgroundPosition: '-1000px 0' },
 					'100%': { backgroundPosition: '1000px 0' },
+				},
+				'fire': {
+					'0%, 100%': { transform: 'rotate(-5deg) scale(0.95)' },
+					'50%': { transform: 'rotate(5deg) scale(1.1)' },
 				}
 			},
 			animation: {
@@ -113,7 +117,8 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'pulse-scale': 'pulse-scale 2s infinite',
 				'float': 'float 6s ease-in-out infinite',
-				'shimmer': 'shimmer 2s infinite linear'
+				'shimmer': 'shimmer 2s infinite linear',
+				'fire': 'fire 1.5s ease-in-out infinite',
 			},
 			boxShadow: {
 				'glow-primary': '0 0 20px rgba(34, 197, 94, 0.25)',

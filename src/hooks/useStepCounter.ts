@@ -1,15 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { formatDateToYYYYMMDD } from '@/lib/workout-utils';
 import { useSettings } from '@/context/SettingsContext';
 import { Capacitor } from '@capacitor/core';
 
 // For TypeScript support without direct imports
-interface LocalNotificationsPlugin {
-  schedule: (options: any) => Promise<any>;
-  createChannel: (options: any) => Promise<void>;
-  cancel: (options: any) => Promise<void>;
-}
-
 interface MotionPlugin {
   isAccelerometerAvailable: () => Promise<{ isAvailable: boolean }>;
   addListener: (eventName: string, callback: (event: any) => void, options?: any) => Promise<void>;
@@ -17,23 +12,28 @@ interface MotionPlugin {
   removeAllListeners: () => Promise<void>;
 }
 
-// Create a simulated pedometer for web testing
+// Create a simulated pedometer for web testing with improved accuracy
 class SimulatedStepCounter {
   private listeners: Array<(steps: number) => void> = [];
   private interval: number | null = null;
   private steps = 0;
+  private lastIncrement = 0;
 
   startStepCounting() {
     if (this.interval) return;
     
+    // Use a more realistic step pattern - smaller, more frequent increments
     this.interval = window.setInterval(() => {
-      // Add 5-15 steps every 10 seconds
-      this.steps += Math.floor(Math.random() * 10) + 5;
-      
-      this.listeners.forEach(listener => {
-        listener(this.steps);
-      });
-    }, 10000) as unknown as number;
+      // Only add 1-3 steps every 5 seconds for more realistic simulation
+      // This avoids large jumps in step count
+      if (Math.random() > 0.3) { // 70% chance to add steps (simulates idle periods)
+        this.steps += Math.floor(Math.random() * 3) + 1;
+        
+        this.listeners.forEach(listener => {
+          listener(this.steps);
+        });
+      }
+    }, 5000) as unknown as number;
     
     return {
       addListener: (callback: (steps: number) => void) => {
@@ -55,20 +55,22 @@ class SimulatedStepCounter {
   }
 }
 
-// Step detection using device motion 
+// Step detection using device motion with improved accuracy
 class MotionStepCounter {
   private stepCount = 0;
   private accelerationBuffer: Array<{ x: number, y: number, z: number }> = [];
   private bufferSize = 5; // Keep track of the last 5 readings for smoothing
-  private threshold = 1.0; // Lower sensitivity threshold for Samsung A02s
-  private stepThreshold = 0.8; // Minimum threshold to count as a valid step
-  private cooldownPeriod = 400; // Milliseconds to wait between steps (prevent double-counting)
+  private threshold = 1.2; // Increased sensitivity threshold for better accuracy
+  private stepThreshold = 1.0; // Increased minimum threshold to count as a valid step
+  private cooldownPeriod = 600; // Increased milliseconds to wait between steps (prevent false positives)
   private lastStepTime = 0;
   private listeners: Array<(steps: number) => void> = [];
   private calibrating = true;
   private calibrationSamples: number[] = []; // Store magnitudes during calibration
   private calibrationCount = 0;
   private motionPlugin: any = null;
+  private isWalking = false; // Track if we detect a walking pattern
+  private consecutiveThresholdCrossings = 0;
   
   async isAvailable() {
     try {
@@ -99,6 +101,8 @@ class MotionStepCounter {
     this.calibrationSamples = [];
     this.calibrating = true;
     this.calibrationCount = 0;
+    this.consecutiveThresholdCrossings = 0;
+    this.isWalking = false;
     
     // Ask permission for motion sensors
     this.motionPlugin.requestPermissions();
@@ -123,6 +127,7 @@ class MotionStepCounter {
       };
     };
     
+    // Improved step detection algorithm with pattern recognition
     const detectSteps = (acceleration: { x: number, y: number, z: number }) => {
       // Add to buffer and maintain buffer size
       this.accelerationBuffer.push(acceleration);
@@ -154,27 +159,44 @@ class MotionStepCounter {
           const medianIndex = Math.floor(sortedSamples.length / 2);
           const medianMagnitude = sortedSamples[medianIndex];
           
-          // Set threshold to be 2.5x the median value during calibration
-          // This helps adapt to different phone models and user gaits
-          this.threshold = Math.max(medianMagnitude * 2.5, this.stepThreshold);
+          // Set threshold higher than previous implementation
+          this.threshold = Math.max(medianMagnitude * 3.0, this.stepThreshold);
           console.log("Calibration complete, threshold set to:", this.threshold);
         }
         return;
       }
       
       const now = Date.now();
-      // Only count steps if we're past the cooldown period and the magnitude exceeds threshold
-      if (now - this.lastStepTime > this.cooldownPeriod && magnitude > this.threshold) {
+      
+      // Detect walking pattern using acceleration pattern analysis
+      if (magnitude > this.threshold) {
+        this.consecutiveThresholdCrossings++;
+        
+        // Require multiple threshold crossings to detect walking pattern
+        if (this.consecutiveThresholdCrossings >= 3) {
+          this.isWalking = true;
+        }
+      } else {
+        // Reset counter if magnitude falls below threshold for a while
+        this.consecutiveThresholdCrossings = Math.max(0, this.consecutiveThresholdCrossings - 0.5);
+        
+        if (this.consecutiveThresholdCrossings === 0) {
+          this.isWalking = false;
+        }
+      }
+      
+      // Only count steps if walking pattern is detected and we're past the cooldown period
+      if (this.isWalking && now - this.lastStepTime > this.cooldownPeriod && magnitude > this.threshold) {
         this.stepCount++;
         this.lastStepTime = now;
         this.listeners.forEach(listener => listener(this.stepCount));
       }
     };
     
-    // Start listening to accelerometer data at a higher sampling rate for Samsung A02s
+    // Start listening to accelerometer data at a higher sampling rate for better accuracy
     this.motionPlugin.addListener('accel', (event: any) => {
       detectSteps(event.acceleration);
-    }, { frequency: 50 }); // Increase sampling rate for better accuracy
+    }, { frequency: 60 }); // Increased sampling rate for better accuracy
     
     return {
       addListener: (callback: (steps: number) => void) => {
@@ -265,7 +287,8 @@ export function useStepCounter() {
               baselineCount
             };
             localStorage.setItem('fit-daily-steps', JSON.stringify(updatedStepData));
-            updateStepNotification(steps, settings.dailyStepGoal);
+            
+            // Removed notification updating code as requested
           });
           
           setSubscription(listenerHandle);
@@ -285,55 +308,6 @@ export function useStepCounter() {
       }
     };
   }, [settings.dailyStepGoal]);
-
-  const updateStepNotification = async (currentSteps: number, goal: number) => {
-    try {
-      if (!Capacitor.isNativePlatform()) return;
-      
-      const progress = Math.min(Math.round((currentSteps / goal) * 100), 100);
-      
-      // Dynamically import LocalNotifications
-      try {
-        const { LocalNotifications } = await import('@capacitor/local-notifications' /* webpackIgnore: true */);
-        
-        // Create a persistent channel specifically for the step counter
-        await LocalNotifications.createChannel({
-          id: "step-counter",
-          name: "Step Counter",
-          description: "Persistent notification showing your step count",
-          importance: 3, // Default priority (less intrusive but visible)
-          visibility: 1,
-          lights: false,
-          vibration: false
-        });
-        
-        // Schedule a foreground-service-style persistent notification
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: 1,
-              title: "Step Tracker",
-              body: `${currentSteps.toLocaleString()} / ${goal.toLocaleString()} steps (${progress}%)`,
-              ongoing: true, // Makes the notification persistent
-              channelId: "step-counter",
-              smallIcon: "ic_stat_directions_walk", // Use walking icon
-              actionTypeId: "",
-              extra: {
-                // Samsung-specific flags to keep notification visible
-                lockScreenVisibility: 1,
-                priority: "default",
-                persistentNotification: true
-              }
-            }
-          ]
-        });
-      } catch (error) {
-        console.error('Error importing LocalNotifications:', error);
-      }
-    } catch (error) {
-      console.error('Error updating notification:', error);
-    }
-  };
 
   return { steps, available };
 }

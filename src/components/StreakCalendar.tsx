@@ -3,7 +3,7 @@ import React from 'react';
 import { useWorkout } from '@/context/WorkoutContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, eachDayOfInterval, startOfMonth, endOfMonth, isToday } from 'date-fns';
-import { Calendar } from 'lucide-react';
+import { Calendar, Flame } from 'lucide-react';
 
 const StreakCalendar: React.FC = () => {
   const { streakData } = useWorkout();
@@ -12,6 +12,25 @@ const StreakCalendar: React.FC = () => {
   const endDay = endOfMonth(today);
   
   const days = eachDayOfInterval({ start: startDay, end: endDay });
+  
+  // Animated flame sizes based on streak length
+  const getFlameSize = (streak: number): number => {
+    if (streak <= 0) return 0;
+    if (streak < 3) return 12;
+    if (streak < 7) return 16;
+    if (streak < 14) return 20;
+    if (streak < 30) return 24;
+    return 28;
+  };
+  
+  // Flame color based on streak length
+  const getFlameColor = (streak: number): string => {
+    if (streak < 3) return "text-orange-400";
+    if (streak < 7) return "text-orange-500";
+    if (streak < 14) return "text-orange-600";
+    if (streak < 30) return "text-red-500";
+    return "text-red-600";
+  };
   
   return (
     <Card className="dashboard-card glass-card">
@@ -50,7 +69,7 @@ const StreakCalendar: React.FC = () => {
               <div 
                 key={dateStr}
                 className={`
-                  h-9 flex items-center justify-center text-xs rounded-full transition-all duration-200
+                  h-9 flex items-center justify-center text-xs rounded-full transition-all duration-200 relative
                   ${isCurrentDay ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}
                   ${isActiveDay 
                     ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-medium shadow-sm' 
@@ -58,6 +77,11 @@ const StreakCalendar: React.FC = () => {
                 `}
               >
                 {format(day, 'd')}
+                {isActiveDay && (
+                  <div className="absolute -top-1 -right-1 animate-bounce">
+                    <span className="text-xs">🔥</span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -68,9 +92,14 @@ const StreakCalendar: React.FC = () => {
             <span className="font-medium">{streakData.streakDates.length}</span>
             <span className="text-muted-foreground ml-1">active days</span>
           </div>
+          
           {streakData.currentStreak > 0 && (
-            <div className="streak-badge animate-pulse-scale bg-gradient-to-r from-accent to-primary text-white">
-              {streakData.currentStreak} day streak! 🔥
+            <div className="streak-badge flex items-center gap-1 animate-pulse-scale bg-gradient-to-r from-accent to-primary text-white">
+              <span>{streakData.currentStreak} day streak!</span>
+              <Flame 
+                className={`${getFlameColor(streakData.currentStreak)} animate-pulse`}
+                size={getFlameSize(streakData.currentStreak)}
+              />
             </div>
           )}
         </div>

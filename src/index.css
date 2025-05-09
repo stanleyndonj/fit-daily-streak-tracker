@@ -81,7 +81,7 @@
 /* Custom styles for fitness app */
 @layer components {
   .workout-card {
-    @apply relative flex flex-col rounded-xl border bg-card text-card-foreground shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden;
+    @apply relative flex flex-col rounded-xl border bg-card text-card-foreground shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden dark:bg-gray-800 dark:border-gray-700;
   }
   
   .workout-completed {
@@ -93,7 +93,7 @@
   }
   
   .exercise-item {
-    @apply flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-all duration-200;
+    @apply flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-all duration-200 dark:border-gray-700;
   }
   
   /* New modern styles */
@@ -106,7 +106,7 @@
   }
   
   .dashboard-card {
-    @apply rounded-xl overflow-hidden transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg;
+    @apply rounded-xl overflow-hidden transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg dark:bg-gray-800 dark:border-gray-700;
   }
 
   .stat-value {
@@ -114,7 +114,11 @@
   }
   
   .app-header {
-    @apply bg-gradient-to-r from-green-400/90 to-blue-500/90 text-white shadow-md;
+    @apply bg-gradient-to-r from-green-400/90 to-blue-500/90 text-white shadow-md dark:from-green-600/90 dark:to-blue-700/90;
+  }
+  
+  .flame {
+    @apply animate-fire text-orange-500;
   }
 }
 
