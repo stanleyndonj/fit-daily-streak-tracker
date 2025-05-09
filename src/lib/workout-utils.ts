@@ -118,22 +118,40 @@ const calculateLongestStreak = (sortedDates: string[]): number => {
 
 // Save data to localStorage
 export const saveWorkouts = (workouts: Workout[]): void => {
-  localStorage.setItem('fit-daily-workouts', JSON.stringify(workouts));
+  try {
+    localStorage.setItem('fit-daily-workouts', JSON.stringify(workouts));
+  } catch (error) {
+    console.error('Failed to save workouts to localStorage:', error);
+  }
 };
 
 export const saveCompletions = (completions: WorkoutCompletion[]): void => {
-  localStorage.setItem('fit-daily-completions', JSON.stringify(completions));
+  try {
+    localStorage.setItem('fit-daily-completions', JSON.stringify(completions));
+  } catch (error) {
+    console.error('Failed to save completions to localStorage:', error);
+  }
 };
 
 // Load data from localStorage
 export const loadWorkouts = (): Workout[] => {
-  const storedWorkouts = localStorage.getItem('fit-daily-workouts');
-  return storedWorkouts ? JSON.parse(storedWorkouts) : [];
+  try {
+    const storedWorkouts = localStorage.getItem('fit-daily-workouts');
+    return storedWorkouts ? JSON.parse(storedWorkouts) : [];
+  } catch (error) {
+    console.error('Failed to load workouts from localStorage:', error);
+    return [];
+  }
 };
 
 export const loadCompletions = (): WorkoutCompletion[] => {
-  const storedCompletions = localStorage.getItem('fit-daily-completions');
-  return storedCompletions ? JSON.parse(storedCompletions) : [];
+  try {
+    const storedCompletions = localStorage.getItem('fit-daily-completions');
+    return storedCompletions ? JSON.parse(storedCompletions) : [];
+  } catch (error) {
+    console.error('Failed to load completions from localStorage:', error);
+    return [];
+  }
 };
 
 // Create a sample workout for new users

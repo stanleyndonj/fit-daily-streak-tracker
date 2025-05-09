@@ -92,20 +92,22 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Delete a workout - Ensure it's properly removed from localStorage too
   const deleteWorkout = (workoutId: string) => {
     const workoutToDelete = workouts.find(w => w.id === workoutId);
+    if (!workoutToDelete) return;
+
     const updatedWorkouts = workouts.filter(w => w.id !== workoutId);
     
-    // Update state
+    // Update workouts state
     setWorkouts(updatedWorkouts);
     
-    // Save to localStorage immediately to ensure persistence
-    localStorage.setItem('fit-daily-workouts', JSON.stringify(updatedWorkouts));
+    // Immediately save to localStorage to ensure persistence
+    saveWorkouts(updatedWorkouts);
     
     // Also remove related completions
     const updatedCompletions = completions.filter(c => c.workoutId !== workoutId);
     setCompletions(updatedCompletions);
     
-    // Save completions to localStorage immediately
-    localStorage.setItem('fit-daily-completions', JSON.stringify(updatedCompletions));
+    // Save updated completions to localStorage
+    saveCompletions(updatedCompletions);
     
     toast.success(`Deleted workout: ${workoutToDelete?.name || 'Workout'}`);
   };

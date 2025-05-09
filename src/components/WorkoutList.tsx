@@ -16,8 +16,9 @@ const WorkoutList: React.FC = () => {
 
   const handleDeleteWorkout = (e: React.MouseEvent, workoutId: string, workoutName: string) => {
     e.stopPropagation();
-    if (confirm(`Are you sure you want to delete "${workoutName}"?`)) {
+    if (confirm(`Are you sure you want to delete "${workoutName}"? This cannot be undone.`)) {
       deleteWorkout(workoutId);
+      // No need to manually manipulate localStorage here, as the context handles it
     }
   };
 
