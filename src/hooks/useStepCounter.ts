@@ -239,7 +239,8 @@ export function useStepCounter() {
         const newStepData = {
           date: today,
           count: 0,
-          baselineCount: 0
+          baselineCount: 0,
+          manuallyEntered: false
         };
         localStorage.setItem('fit-daily-steps', JSON.stringify(newStepData));
       }
@@ -247,13 +248,24 @@ export function useStepCounter() {
       const newStepData = {
         date: today,
         count: 0,
-        baselineCount: 0
+        baselineCount: 0,
+        manuallyEntered: false
       };
       localStorage.setItem('fit-daily-steps', JSON.stringify(newStepData));
     }
 
     const startStepTracking = async () => {
       try {
+        // Check if steps were already manually entered today
+        if (storedStepData) {
+          const stepData = JSON.parse(storedStepData);
+          if (stepData.date === today && stepData.manuallyEntered) {
+            // If steps were manually entered, don't start tracking
+            setSteps(stepData.count - stepData.baselineCount);
+            return;
+          }
+        }
+
         let stepCounter: any;
         
         // Use appropriate step counter based on platform
@@ -284,11 +296,10 @@ export function useStepCounter() {
             const updatedStepData = {
               date: today,
               count: currentSteps,
-              baselineCount
+              baselineCount,
+              manuallyEntered: false
             };
             localStorage.setItem('fit-daily-steps', JSON.stringify(updatedStepData));
-            
-            // Removed notification updating code as requested
           });
           
           setSubscription(listenerHandle);
@@ -309,5 +320,30 @@ export function useStepCounter() {
     };
   }, [settings.dailyStepGoal]);
 
-  return { steps, available };
+  // Function to manually set steps
+  const setManualSteps = (manualStepCount: number) => {
+    const today = formatDateToYYYYMMDD(new Date());
+    
+    // Stop any automatic step counting
+    if (subscription) {
+      subscription.remove();
+      setSubscription(null);
+    }
+    
+    setSteps(manualStepCount);
+    
+    // Save to localStorage with manuallyEntered flag
+    const stepData = {
+      date: today,
+      count: manualStepCount,
+      baselineCount: 0,
+      manuallyEntered: true
+    };
+    
+    localStorage.setItem('fit-daily-steps', JSON.stringify(stepData));
+    
+    console.log(`Manually set steps to ${manualStepCount}`);
+  };
+
+  return { steps, available, setManualSteps };
 }

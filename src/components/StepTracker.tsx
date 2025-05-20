@@ -1,17 +1,40 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useSettings } from '@/context/SettingsContext';
 import { useStepCounter } from '@/hooks/useStepCounter';
-import { Footprints } from 'lucide-react';
+import { Footprints, Edit, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from "sonner";
 
 const StepTracker: React.FC = () => {
   const { settings } = useSettings();
-  const { steps } = useStepCounter();
+  const { steps, setManualSteps } = useStepCounter();
+  const [isEditing, setIsEditing] = useState(false);
+  const [manualSteps, setManualStepsInput] = useState('');
   
   const goal = settings.dailyStepGoal;
   const progress = Math.min(Math.round((steps / goal) * 100), 100);
+  
+  const handleSaveManualSteps = () => {
+    const stepsCount = parseInt(manualSteps);
+    if (!isNaN(stepsCount) && stepsCount >= 0) {
+      setManualSteps(stepsCount);
+      setIsEditing(false);
+      setManualStepsInput('');
+      toast.success("Steps updated successfully");
+    } else {
+      toast.error("Please enter a valid number of steps");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveManualSteps();
+    }
+  };
   
   return (
     <Card className="dashboard-card glass-card">
@@ -29,8 +52,42 @@ const StepTracker: React.FC = () => {
       <CardContent>
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-3xl font-bold stat-value">{steps.toLocaleString()}</span>
+            {isEditing ? (
+              <div className="flex w-full gap-2">
+                <Input 
+                  type="number" 
+                  placeholder="Enter steps" 
+                  value={manualSteps} 
+                  onChange={(e) => setManualStepsInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full"
+                  autoFocus
+                />
+                <Button size="icon" onClick={handleSaveManualSteps}>
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <span className="text-3xl font-bold stat-value">{steps.toLocaleString()}</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1 text-xs"
+                >
+                  <Edit className="h-3 w-3" />
+                  Manual
+                </Button>
+              </>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">Goal: {goal.toLocaleString()}</span>
+            <span className="text-muted-foreground text-sm">
+              {steps >= goal ? "Goal reached! 🎉" : `${goal - steps} steps to go`}
+            </span>
           </div>
           
           <div className="relative pt-1">
