@@ -1,6 +1,9 @@
-
 import { Exercise, Workout, WorkoutCompletion, StreakData } from "@/types";
 import { format, isToday, parseISO, differenceInDays, addDays, startOfDay } from "date-fns";
+
+// Constants for steps tracking
+export const STEPS_WORKOUT_ID = 'daily-steps-workout';
+export const STEPS_EXERCISE_ID = 'daily-steps-exercise';
 
 // Generate a unique ID
 export const generateId = (): string => {
@@ -18,8 +21,11 @@ export const isExerciseCompleted = (
   completions: WorkoutCompletion[],
   date: string = formatDateToYYYYMMDD(new Date())
 ): boolean => {
-  const completion = completions.find(c => c.date === date);
-  return completion ? completion.completedExercises.includes(exerciseId) : false;
+  // Find any completion record for this date that includes the exerciseId
+  const completion = completions.find(c => 
+    c.date === date && c.completedExercises.includes(exerciseId)
+  );
+  return !!completion;
 };
 
 // Get completion percentage for a workout on a given date
@@ -133,17 +139,72 @@ export const saveCompletions = (completions: WorkoutCompletion[]): void => {
   }
 };
 
-// Load data from localStorage
+// Load data from localStorage with steps workout integration
 export const loadWorkouts = (): Workout[] => {
   try {
     const storedWorkouts = localStorage.getItem('fit-daily-workouts');
-    return storedWorkouts ? JSON.parse(storedWorkouts) : [];
+    let workouts = storedWorkouts ? JSON.parse(storedWorkouts) : [];
+    
+    // Ensure the steps workout exists
+    workouts = ensureStepsWorkoutExists(workouts);
+    
+    return workouts;
   } catch (error) {
     console.error('Failed to load workouts from localStorage:', error);
-    return [];
+    return [createStepsWorkout()];
   }
 };
 
+// Create the virtual workout for step tracking if it doesn't exist
+export const ensureStepsWorkoutExists = (workouts: Workout[]): Workout[] => {
+  // Check if the steps workout already exists
+  const stepsWorkoutExists = workouts.some(w => w.id === STEPS_WORKOUT_ID);
+  
+  if (!stepsWorkoutExists) {
+    const now = new Date().toISOString();
+    const stepsWorkout: Workout = {
+      id: STEPS_WORKOUT_ID,
+      name: "Daily Step Goal",
+      exercises: [
+        {
+          id: STEPS_EXERCISE_ID,
+          name: "Reach Daily Step Goal",
+          type: "reps",
+          target: 0, // This is a placeholder, will use settings.dailyStepGoal
+          sets: 1
+        }
+      ],
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    return [...workouts, stepsWorkout];
+  }
+  
+  return workouts;
+};
+
+// Create a steps workout
+export const createStepsWorkout = (): Workout => {
+  const now = new Date().toISOString();
+  return {
+    id: STEPS_WORKOUT_ID,
+    name: "Daily Step Goal",
+    exercises: [
+      {
+        id: STEPS_EXERCISE_ID,
+        name: "Reach Daily Step Goal",
+        type: "reps",
+        target: 0, // This is a placeholder, will use settings.dailyStepGoal
+        sets: 1
+      }
+    ],
+    createdAt: now,
+    updatedAt: now
+  };
+};
+
+// Load data from localStorage
 export const loadCompletions = (): WorkoutCompletion[] => {
   try {
     const storedCompletions = localStorage.getItem('fit-daily-completions');

@@ -219,6 +219,13 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Toggle exercise completion status
   const toggleExerciseCompletion = (workoutId: string, exerciseId: string) => {
+    if (!workoutId || !exerciseId) {
+      console.error("Invalid workoutId or exerciseId:", { workoutId, exerciseId });
+      return;
+    }
+    
+    console.log(`Toggling exercise: ${exerciseId} in workout: ${workoutId}`);
+    
     const today = formatDateToYYYYMMDD(new Date());
     
     // Find if we have an existing completion record for today's workout
@@ -229,12 +236,14 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (existingCompletion) {
       // Check if this exercise is already marked as completed
       const isCompleted = existingCompletion.completedExercises.includes(exerciseId);
+      console.log(`Exercise ${exerciseId} current completion status: ${isCompleted}`);
       
       if (isCompleted) {
         // If already completed, remove it from completions
         const updatedCompletions = completions.map(completion => {
           if (completion.id === existingCompletion.id) {
             const filteredExercises = completion.completedExercises.filter(id => id !== exerciseId);
+            console.log(`Removing exercise ${exerciseId} from completions, remaining exercises:`, filteredExercises);
             
             // If no exercises remain completed, remove the entire completion entry
             if (filteredExercises.length === 0) {
@@ -251,14 +260,17 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         setCompletions(updatedCompletions);
         saveCompletions(updatedCompletions);
-        console.log("Removed exercise completion:", exerciseId);
+        console.log(`Removed exercise completion: ${exerciseId}, new completions count: ${updatedCompletions.length}`);
       } else {
         // If not completed, add it to completions
         const updatedCompletions = completions.map(completion => {
           if (completion.id === existingCompletion.id) {
+            const updatedExercises = [...completion.completedExercises, exerciseId];
+            console.log(`Adding exercise ${exerciseId} to completions, new completed exercises:`, updatedExercises);
+            
             return {
               ...completion,
-              completedExercises: [...completion.completedExercises, exerciseId]
+              completedExercises: updatedExercises
             };
           }
           return completion;
@@ -266,7 +278,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         setCompletions(updatedCompletions);
         saveCompletions(updatedCompletions);
-        console.log("Added exercise completion:", exerciseId);
+        console.log(`Added exercise completion: ${exerciseId}`);
       }
     } else {
       // No existing completion record for today, create a new one
@@ -277,10 +289,11 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         completedExercises: [exerciseId]
       };
       
+      console.log(`Creating new completion record with exercise: ${exerciseId}`, newCompletion);
+      
       const updatedCompletions = [...completions, newCompletion];
       setCompletions(updatedCompletions);
       saveCompletions(updatedCompletions);
-      console.log("Created new completion record with exercise:", exerciseId);
     }
   };
 

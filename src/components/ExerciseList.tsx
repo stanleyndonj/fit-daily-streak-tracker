@@ -52,6 +52,11 @@ const ExerciseList: React.FC<ExerciseListProps> = ({ workout }) => {
     }
   };
 
+  const handleToggleExercise = (workoutId: string, exerciseId: string) => {
+    console.log(`Toggling exercise: ${exerciseId} in workout: ${workoutId}`);
+    toggleExerciseCompletion(workoutId, exerciseId);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -66,19 +71,19 @@ const ExerciseList: React.FC<ExerciseListProps> = ({ workout }) => {
         ) : (
           <div className="divide-y">
             {workout.exercises.map((exercise) => {
-              const completed = isExerciseCompleted(exercise.id, completions, today);
+              const isCompleted = isExerciseCompleted(exercise.id, completions, today);
               
               return (
                 <div key={exercise.id} className="exercise-item py-3">
                   <div className="flex items-center">
                     <Checkbox 
                       id={`exercise-${exercise.id}`}
-                      checked={completed}
-                      onCheckedChange={() => toggleExerciseCompletion(workout.id, exercise.id)}
+                      checked={isCompleted}
+                      onCheckedChange={() => handleToggleExercise(workout.id, exercise.id)}
                       className="mr-3"
                     />
                     <div>
-                      <div className={`font-medium ${completed ? 'line-through text-muted-foreground' : ''}`}>
+                      <div className={`font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
                         {exercise.name}
                       </div>
                       {renderExerciseDetails(exercise)}
