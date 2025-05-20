@@ -24,6 +24,7 @@ export const initLocalNotifications = async (): Promise<LocalNotificationsPlugin
       try {
         const module = await import('@capacitor/local-notifications');
         LocalNotifications = module.LocalNotifications;
+        console.log('LocalNotifications plugin loaded successfully');
         
         // Setup notification channel for Android
         if (Capacitor.getPlatform() === 'android' && LocalNotifications) {
@@ -33,6 +34,9 @@ export const initLocalNotifications = async (): Promise<LocalNotificationsPlugin
         // Register notification actions
         if (LocalNotifications) {
           await registerNotificationActions(LocalNotifications);
+          
+          // Setup listeners
+          await setupNotificationListeners(LocalNotifications);
         }
         
         return LocalNotifications;
@@ -43,6 +47,7 @@ export const initLocalNotifications = async (): Promise<LocalNotificationsPlugin
     }
     return LocalNotifications;
   }
+  console.log('Not running on a native platform, skipping notifications setup');
   return undefined;
 };
 
@@ -53,7 +58,7 @@ const createNotificationChannel = async (notificationsPlugin: LocalNotifications
       id: "workout-reminders",
       name: "Workout Reminders",
       description: "Daily reminders for your workout routine",
-      importance: 4, // High importance
+      importance: 5, // Maximum importance
       visibility: 1,
       sound: "notification",
       vibration: true,
@@ -94,11 +99,12 @@ const registerNotificationActions = async (notificationsPlugin: LocalNotificatio
 
 // Check notification permissions
 export const checkNotificationPermissions = async (): Promise<boolean> => {
-  const notifications = await initLocalNotifications();
-  if (!notifications) return false;
-  
   try {
+    const notifications = await initLocalNotifications();
+    if (!notifications) return false;
+    
     const { display } = await notifications.checkPermissions();
+    console.log('Notification permission status:', display);
     return display === 'granted';
   } catch (error) {
     console.error('Failed to check notification permissions:', error);
@@ -108,40 +114,47 @@ export const checkNotificationPermissions = async (): Promise<boolean> => {
 
 // Request notification permissions
 export const requestNotificationPermissions = async (): Promise<boolean> => {
-  const notifications = await initLocalNotifications();
-  if (!notifications) {
-    console.log('Notifications plugin not available');
-    return false;
-  }
-  
   try {
+    console.log('Requesting notification permissions...');
+    const notifications = await initLocalNotifications();
+    if (!notifications) {
+      console.log('Notifications plugin not available');
+      return false;
+    }
+    
     const { display } = await notifications.requestPermissions();
     const granted = display === 'granted';
     
     if (granted) {
       console.log('Notification permissions granted');
+      toast.success('Notification permissions granted');
     } else {
       console.log('Notification permissions denied');
+      toast.error('Please enable notifications in your device settings to receive workout reminders');
     }
     
     return granted;
   } catch (error) {
     console.error('Error requesting notification permissions:', error);
+    toast.error('Failed to request notification permissions');
     return false;
   }
 };
 
 // Cancel all pending notifications
 export const cancelAllNotifications = async (): Promise<void> => {
-  const notifications = await initLocalNotifications();
-  if (!notifications) return;
-  
   try {
+    console.log('Cancelling all pending notifications...');
+    const notifications = await initLocalNotifications();
+    if (!notifications) return;
+    
     const pendingNotifications = await notifications.getPending();
     if (pendingNotifications.notifications.length > 0) {
       const ids = pendingNotifications.notifications.map(n => ({ id: n.id }));
       await notifications.cancel({ notifications: ids });
       console.log('Cancelled pending notifications:', ids);
+    } else {
+      console.log('No pending notifications to cancel');
     }
   } catch (error) {
     console.error('Failed to cancel notifications:', error);
@@ -156,13 +169,16 @@ export const scheduleDailyNotification = async (
   vibrationEnabled: boolean,
   specificDate?: string
 ): Promise<boolean> => {
-  const notifications = await initLocalNotifications();
-  if (!notifications) {
-    toast.error("Notifications aren't available on this device");
-    return false;
-  }
-  
   try {
+    console.log(`Scheduling notification for time: ${time}, weekdaysOnly: ${weekdaysOnly}`);
+    
+    const notifications = await initLocalNotifications();
+    if (!notifications) {
+      console.error("Notifications aren't available on this device");
+      toast.error("Notifications aren't available on this device");
+      return false;
+    }
+    
     // Clear existing notifications first
     await cancelAllNotifications();
     
@@ -180,6 +196,7 @@ export const scheduleDailyNotification = async (
       
       // If date is in the past, don't schedule
       if (triggerDate < now) {
+        console.error("The selected date has already passed");
         toast.error("The selected date has already passed");
         return false;
       }
@@ -191,6 +208,7 @@ export const scheduleDailyNotification = async (
       // If the time has passed for today, schedule for tomorrow
       if (triggerDate <= now) {
         triggerDate.setDate(triggerDate.getDate() + 1);
+        console.log('Time already passed today, scheduling for tomorrow:', triggerDate);
       }
       
       // If weekdaysOnly and the date falls on a weekend, move to Monday
@@ -206,6 +224,8 @@ export const scheduleDailyNotification = async (
       }
     }
     
+    console.log('Final trigger date calculated:', triggerDate.toLocaleString());
+    
     // Ensure valid sound name
     let soundName = selectedRingtone;
     if (soundName === 'default') {
@@ -215,55 +235,34 @@ export const scheduleDailyNotification = async (
     // Is this a one-time or repeating notification?
     const isRepeating = !specificDate;
     
-    // Schedule notification options
-    const scheduleOptions: any = {
-      at: triggerDate,
-      allowWhileIdle: true,
-    };
-    
-    if (isRepeating) {
-      scheduleOptions.every = weekdaysOnly ? 'weekday' : 'day'; 
-      scheduleOptions.repeats = true;
-    }
-    
-    // For Android, add specific scheduling options
-    if (Capacitor.getPlatform() === 'android') {
-      scheduleOptions.schedule = {
-        exact: true,
-        wakeup: true,
-        allowInForeground: true,
-      };
-    }
-    
     // Schedule notification
+    const notificationId = 100;
+    
     await notifications.schedule({
       notifications: [
         {
-          id: 100,
+          id: notificationId,
           title: "Time to work out!",
           body: "Don't break your streak! It's time for your daily workout.",
-          schedule: scheduleOptions,
+          schedule: {
+            at: triggerDate,
+            repeats: isRepeating,
+            every: weekdaysOnly ? 'weekday' : 'day',
+            allowWhileIdle: true,
+            precise: true
+          },
           sound: soundName,
+          smallIcon: "ic_stat_directions_walk",
+          largeIcon: "notification_icon",
+          channelId: "workout-reminders",
           ongoing: false,
           autoCancel: true,
-          channelId: "workout-reminders",
-          smallIcon: "ic_stat_directions_walk",
-          largeIcon: "ic_stat_notification",
-          importance: 4,
-          vibration: vibrationEnabled,
-          actionTypeId: "WORKOUT_ACTIONS",
-          extra: {
-            data: {
-              workoutTime: true,
-              weekdaysOnly: weekdaysOnly,
-              exactAlarm: true
-            }
-          }
+          actionTypeId: "WORKOUT_ACTIONS"
         }
       ]
     });
     
-    console.log('Notification scheduled for:', triggerDate.toLocaleString());
+    console.log('Notification scheduled successfully for:', triggerDate.toLocaleString());
     
     // Determine the notification message to show
     let message = '';
@@ -285,12 +284,19 @@ export const scheduleDailyNotification = async (
 };
 
 // Setup notification listeners to handle actions
-export const setupNotificationListeners = async (): Promise<void> => {
-  const notifications = await initLocalNotifications();
-  if (!notifications) return;
-  
+export const setupNotificationListeners = async (notificationsPlugin?: LocalNotificationsPlugin): Promise<void> => {
   try {
-    // Handle notification actions
+    const notifications = notificationsPlugin || await initLocalNotifications();
+    if (!notifications) return;
+    
+    console.log('Setting up notification listeners...');
+    
+    // Listen for notification received
+    notifications.addListener('localNotificationReceived', (notification) => {
+      console.log('Notification received:', notification);
+    });
+    
+    // Listen for notification actions
     notifications.addListener('localNotificationActionPerformed', (notificationData) => {
       console.log('Notification action performed:', notificationData);
       
@@ -309,7 +315,8 @@ export const setupNotificationListeners = async (): Promise<void> => {
               body: "This is your snoozed reminder. Time to work out now!",
               schedule: { at: snoozeTime },
               sound: "notification",
-              channelId: "workout-reminders"
+              channelId: "workout-reminders",
+              smallIcon: "ic_stat_directions_walk"
             }
           ]
         });
@@ -317,6 +324,8 @@ export const setupNotificationListeners = async (): Promise<void> => {
         console.log('Notification snoozed for 10 minutes');
       }
     });
+    
+    console.log('Notification listeners setup complete');
   } catch (error) {
     console.error('Failed to setup notification listeners:', error);
   }

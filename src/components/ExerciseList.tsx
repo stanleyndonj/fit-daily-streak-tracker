@@ -69,9 +69,10 @@ const ExerciseList: React.FC<ExerciseListProps> = ({ workout }) => {
               const completed = isExerciseCompleted(exercise.id, completions, today);
               
               return (
-                <div key={exercise.id} className="exercise-item">
+                <div key={exercise.id} className="exercise-item py-3">
                   <div className="flex items-center">
                     <Checkbox 
+                      id={`exercise-${exercise.id}`}
                       checked={completed}
                       onCheckedChange={() => toggleExerciseCompletion(workout.id, exercise.id)}
                       className="mr-3"

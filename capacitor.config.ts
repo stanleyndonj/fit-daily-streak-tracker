@@ -17,7 +17,7 @@ const config: CapacitorConfig = {
       smallIcon: "ic_stat_directions_walk",
       iconColor: "#488AFF",
       sound: "notification",
-      importance: 5, // Maximum importance for Android (was 4)
+      importance: 5, // Maximum importance for Android
       foreground: true, // Show even when app is in foreground
       schedule: {
         precision: "exact", // Use exact precision timing
@@ -37,7 +37,8 @@ const config: CapacitorConfig = {
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.USE_EXACT_ALARM",
-        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" // Added to allow waking from deep sleep
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS", // For waking from deep sleep
+        "android.permission.SYSTEM_ALERT_WINDOW" // For reliable alarms
       ]
     },
     // Motion settings

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { Exercise, Workout, WorkoutCompletion, StreakData } from '@/types';
@@ -221,27 +220,56 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Toggle exercise completion status
   const toggleExerciseCompletion = (workoutId: string, exerciseId: string) => {
     const today = formatDateToYYYYMMDD(new Date());
-    const existingCompletion = completions.find(c => c.workoutId === workoutId && c.date === today);
+    
+    // Find if we have an existing completion record for today's workout
+    const existingCompletion = completions.find(
+      c => c.workoutId === workoutId && c.date === today
+    );
     
     if (existingCompletion) {
-      // Toggle exercise completion status
+      // Check if this exercise is already marked as completed
       const isCompleted = existingCompletion.completedExercises.includes(exerciseId);
-      const updatedCompletions = completions.map(completion => {
-        if (completion.id === existingCompletion.id) {
-          return {
-            ...completion,
-            completedExercises: isCompleted
-              ? completion.completedExercises.filter(id => id !== exerciseId)
-              : [...completion.completedExercises, exerciseId]
-          };
-        }
-        return completion;
-      });
       
-      setCompletions(updatedCompletions);
-      saveCompletions(updatedCompletions);
+      if (isCompleted) {
+        // If already completed, remove it from completions
+        const updatedCompletions = completions.map(completion => {
+          if (completion.id === existingCompletion.id) {
+            const filteredExercises = completion.completedExercises.filter(id => id !== exerciseId);
+            
+            // If no exercises remain completed, remove the entire completion entry
+            if (filteredExercises.length === 0) {
+              return null; // Mark for removal
+            }
+            
+            return {
+              ...completion,
+              completedExercises: filteredExercises
+            };
+          }
+          return completion;
+        }).filter(Boolean) as WorkoutCompletion[]; // Remove null entries
+        
+        setCompletions(updatedCompletions);
+        saveCompletions(updatedCompletions);
+        console.log("Removed exercise completion:", exerciseId);
+      } else {
+        // If not completed, add it to completions
+        const updatedCompletions = completions.map(completion => {
+          if (completion.id === existingCompletion.id) {
+            return {
+              ...completion,
+              completedExercises: [...completion.completedExercises, exerciseId]
+            };
+          }
+          return completion;
+        });
+        
+        setCompletions(updatedCompletions);
+        saveCompletions(updatedCompletions);
+        console.log("Added exercise completion:", exerciseId);
+      }
     } else {
-      // Create a new completion record
+      // No existing completion record for today, create a new one
       const newCompletion: WorkoutCompletion = {
         id: generateId(),
         workoutId,
@@ -252,6 +280,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const updatedCompletions = [...completions, newCompletion];
       setCompletions(updatedCompletions);
       saveCompletions(updatedCompletions);
+      console.log("Created new completion record with exercise:", exerciseId);
     }
   };
 
