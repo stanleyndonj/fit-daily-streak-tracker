@@ -52,8 +52,13 @@ const ExerciseList: React.FC<ExerciseListProps> = ({ workout }) => {
     }
   };
 
-  const handleToggleExercise = (workoutId: string, exerciseId: string) => {
-    console.log(`Toggling exercise: ${exerciseId} in workout: ${workoutId}`);
+  // Enhanced handler with explicit logging to debug the issue
+  const handleToggleExercise = (workoutId: string, exerciseId: string, exerciseName: string) => {
+    console.log(`Toggling exercise: ${exerciseName} (${exerciseId}) in workout: ${workoutId}`);
+    if (!exerciseId) {
+      console.error("Missing exercise ID in toggle handler");
+      return;
+    }
     toggleExerciseCompletion(workoutId, exerciseId);
   };
 
@@ -79,7 +84,7 @@ const ExerciseList: React.FC<ExerciseListProps> = ({ workout }) => {
                     <Checkbox 
                       id={`exercise-${exercise.id}`}
                       checked={isCompleted}
-                      onCheckedChange={() => handleToggleExercise(workout.id, exercise.id)}
+                      onCheckedChange={() => handleToggleExercise(workout.id, exercise.id, exercise.name)}
                       className="mr-3"
                     />
                     <div>
