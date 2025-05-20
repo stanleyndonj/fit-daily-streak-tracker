@@ -217,14 +217,34 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     saveCompletions(updatedCompletions);
   };
 
-  // Toggle exercise completion status
+  // Toggle exercise completion status - improved with better validation
   const toggleExerciseCompletion = (workoutId: string, exerciseId: string) => {
-    if (!workoutId || !exerciseId) {
-      console.error("Invalid workoutId or exerciseId:", { workoutId, exerciseId });
+    // Enhanced validation to catch any potential issues
+    if (!workoutId) {
+      console.error("Invalid workoutId:", workoutId);
       return;
     }
     
-    console.log(`Toggling exercise: ${exerciseId} in workout: ${workoutId}`);
+    if (!exerciseId) {
+      console.error("Invalid exerciseId:", exerciseId);
+      return;
+    }
+    
+    console.log(`Processing toggle for exercise: ${exerciseId} in workout: ${workoutId}`);
+    
+    // Verify the workout and exercise actually exist
+    const workoutExists = workouts.some(w => w.id === workoutId);
+    if (!workoutExists) {
+      console.error(`Workout with ID ${workoutId} does not exist`);
+      return;
+    }
+    
+    const workout = workouts.find(w => w.id === workoutId);
+    const exerciseExists = workout?.exercises.some(e => e.id === exerciseId);
+    if (!exerciseExists) {
+      console.error(`Exercise with ID ${exerciseId} does not exist in workout ${workoutId}`);
+      return;
+    }
     
     const today = formatDateToYYYYMMDD(new Date());
     

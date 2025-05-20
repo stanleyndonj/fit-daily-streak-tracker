@@ -49,16 +49,25 @@ const ExerciseList: React.FC<ExerciseListProps> = ({ workout }) => {
             </span>
           </div>
         );
+      default:
+        return null;
     }
   };
 
-  // Enhanced handler with explicit logging to debug the issue
+  // Enhanced handler with proper validation and error handling
   const handleToggleExercise = (workoutId: string, exerciseId: string, exerciseName: string) => {
-    console.log(`Toggling exercise: ${exerciseName} (${exerciseId}) in workout: ${workoutId}`);
-    if (!exerciseId) {
-      console.error("Missing exercise ID in toggle handler");
+    // Extensive validation to catch any issues
+    if (!workoutId) {
+      console.error("Missing workout ID in toggle handler");
       return;
     }
+    
+    if (!exerciseId) {
+      console.error(`Missing exercise ID for ${exerciseName || 'unknown exercise'} in workout: ${workoutId}`);
+      return;
+    }
+    
+    console.log(`Toggling exercise: ${exerciseName} (ID: ${exerciseId}) in workout: ${workoutId}`);
     toggleExerciseCompletion(workoutId, exerciseId);
   };
 
@@ -76,6 +85,12 @@ const ExerciseList: React.FC<ExerciseListProps> = ({ workout }) => {
         ) : (
           <div className="divide-y">
             {workout.exercises.map((exercise) => {
+              // Ensure exercise has a valid ID before trying to check completion status
+              if (!exercise.id) {
+                console.error(`Exercise missing ID: ${exercise.name}`);
+                return null;
+              }
+              
               const isCompleted = isExerciseCompleted(exercise.id, completions, today);
               
               return (
