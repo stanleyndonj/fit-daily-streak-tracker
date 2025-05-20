@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">fit-daily-streak-tracker</string>
+    <string name="title_activity_main">fit-daily-streak-tracker</string>
+    <string name="package_name">app.lovable.d0ce9398d4d1400d92ebaae8353ae61a</string>
+    <string name="custom_url_scheme">app.lovable.d0ce9398d4d1400d92ebaae8353ae61a</string>
+</resources>

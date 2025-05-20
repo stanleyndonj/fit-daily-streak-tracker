@@ -20,6 +20,17 @@ const WorkoutDetailPage = () => {
   
   const workout = workouts.find(w => w.id === workoutId);
   
+  // Debug logging to help diagnose workout and exercise display issues
+  useEffect(() => {
+    if (workout) {
+      console.log('Found workout:', workout);
+      console.log('Exercises in this workout:', workout.exercises);
+    } else {
+      console.log('No workout found with ID:', workoutId);
+      console.log('Available workouts:', workouts);
+    }
+  }, [workout, workoutId, workouts]);
+  
   // For vibration and voice feedback in a real app
   // Here we just show status
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -113,7 +124,7 @@ const WorkoutDetailPage = () => {
               <dl className="space-y-2">
                 <div>
                   <dt className="text-sm text-muted-foreground">Exercises</dt>
-                  <dd className="font-medium">{workout.exercises.length}</dd>
+                  <dd className="font-medium">{workout.exercises?.length || 0}</dd>
                 </div>
                 <div>
                   <dt className="text-sm text-muted-foreground">Created</dt>

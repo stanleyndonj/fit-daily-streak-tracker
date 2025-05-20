@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { X, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { generateId } from '@/lib/workout-utils';
 
 interface WorkoutFormProps {
   mode: 'create' | 'edit';
@@ -32,6 +33,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
   
   const handleAddExercise = () => {
     setExercises([...exercises, { 
+      id: generateId(), // Add a unique ID for each new exercise
       name: '', 
       type: 'reps', 
       target: 10, 
@@ -66,19 +68,28 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
       return;
     }
     
-    // Check if all exercises have names
+    // Check if all exercises have names and IDs
     const invalidExercise = exercises.findIndex(ex => !ex.name?.trim());
     if (invalidExercise !== -1) {
       setError(`Exercise #${invalidExercise + 1} needs a name`);
       return;
     }
     
+    // Ensure all exercises have IDs
+    const exercisesWithIds = exercises.map(ex => {
+      if (!ex.id) {
+        return { ...ex, id: generateId() };
+      }
+      return ex;
+    });
+    
     setError('');
     
     if (mode === 'create') {
+      // Use the exercises with guaranteed IDs
       addWorkout({ 
         name,
-        exercises: exercises as Exercise[]
+        exercises: exercisesWithIds as Exercise[]
       });
       navigate('/');
     } else if (mode === 'edit' && workoutId) {
@@ -87,7 +98,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
         updateWorkout({
           ...workout,
           name,
-          exercises: exercises as Exercise[]
+          exercises: exercisesWithIds as Exercise[]
         });
         navigate(`/workout/${workoutId}`);
       }
