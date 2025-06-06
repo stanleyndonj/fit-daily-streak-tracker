@@ -247,6 +247,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     
     const today = formatDateToYYYYMMDD(new Date());
+    const timestamp = new Date().toISOString(); // Add timestamp for the current time
     
     // Find if we have an existing completion record for today's workout
     const existingCompletion = completions.find(
@@ -281,6 +282,11 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setCompletions(updatedCompletions);
         saveCompletions(updatedCompletions);
         console.log(`Removed exercise completion: ${exerciseId}, new completions count: ${updatedCompletions.length}`);
+        
+        // Dispatch custom event for other contexts to react to
+        window.dispatchEvent(new CustomEvent('exercise-uncompleted', {
+          detail: { workoutId, exerciseId, date: today }
+        }));
       } else {
         // If not completed, add it to completions
         const updatedCompletions = completions.map(completion => {
@@ -290,7 +296,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
             
             return {
               ...completion,
-              completedExercises: updatedExercises
+              completedExercises: updatedExercises,
+              timestamp // Add timestamp for history tracking
             };
           }
           return completion;
@@ -299,6 +306,12 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setCompletions(updatedCompletions);
         saveCompletions(updatedCompletions);
         console.log(`Added exercise completion: ${exerciseId}`);
+        
+        // Dispatch custom event for other contexts to react to
+        // This will be used by the AchievementContext to track exercise completions
+        window.dispatchEvent(new CustomEvent('exercise-completed', {
+          detail: { workoutId, exerciseId, date: today, timestamp }
+        }));
       }
     } else {
       // No existing completion record for today, create a new one
@@ -306,7 +319,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         id: generateId(),
         workoutId,
         date: today,
-        completedExercises: [exerciseId]
+        completedExercises: [exerciseId],
+        timestamp // Add timestamp for history tracking
       };
       
       console.log(`Creating new completion record with exercise: ${exerciseId}`, newCompletion);
@@ -314,6 +328,11 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const updatedCompletions = [...completions, newCompletion];
       setCompletions(updatedCompletions);
       saveCompletions(updatedCompletions);
+      
+      // Dispatch custom event for other contexts to react to
+      window.dispatchEvent(new CustomEvent('exercise-completed', {
+        detail: { workoutId, exerciseId, date: today, timestamp }
+      }));
     }
   };
 

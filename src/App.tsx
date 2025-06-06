@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WorkoutProvider } from "@/context/WorkoutContext";
 import { SettingsProvider } from "@/context/SettingsContext";
+import { AchievementProvider } from "@/context/AchievementContext";
 import Index from "./pages/Index";
 import WorkoutDetailPage from "./pages/WorkoutDetailPage";
 import CreateWorkoutPage from "./pages/CreateWorkoutPage";
@@ -36,16 +37,18 @@ const App = () => {
         <Sonner />
         <SettingsProvider>
           <WorkoutProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/workout/:workoutId" element={<WorkoutDetailPage />} />
-                <Route path="/create-workout" element={<CreateWorkoutPage />} />
-                <Route path="/edit-workout/:workoutId" element={<EditWorkoutPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+            <AchievementProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/workout/:workoutId" element={<WorkoutDetailPage />} />
+                  <Route path="/create-workout" element={<CreateWorkoutPage />} />
+                  <Route path="/edit-workout/:workoutId" element={<EditWorkoutPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </AchievementProvider>
           </WorkoutProvider>
         </SettingsProvider>
       </TooltipProvider>

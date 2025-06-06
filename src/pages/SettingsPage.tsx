@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Volume2, Vibrate, Calendar } from 'lucide-react';
+import { ArrowLeft, Bell, Volume2, Vibrate, Calendar, Target } from 'lucide-react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useSettings, AVAILABLE_RINGTONES } from '@/context/SettingsContext';
+import { useAchievement } from '@/context/AchievementContext';
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { playRingtone } from './ringtoneService';
@@ -16,10 +17,12 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { settings, updateSettings, setupNotificationPermissions, scheduleReminder } = useSettings();
+  const { currentWeeklyGoal, setWeeklyGoalTarget } = useAchievement();
 
   const [reminderEnabled, setReminderEnabled] = useState(settings.reminderEnabled);
   const [reminderTime, setReminderTime] = useState(settings.reminderTime || "07:00");
@@ -32,6 +35,8 @@ const SettingsPage = () => {
   const [dailyStepGoal, setDailyStepGoal] = useState(settings.dailyStepGoal);
   const [selectedRingtone, setSelectedRingtone] = useState(settings.selectedRingtone || 'default');
   const [notifyInBackground, setNotifyInBackground] = useState(settings.notifyInBackground ?? true);
+  const [weeklyGoalEnabled, setWeeklyGoalEnabled] = useState(settings.weeklyGoalEnabled ?? true);
+  const [weeklyGoalTarget, setWeeklyGoalTargetState] = useState(settings.weeklyGoalTarget ?? 4);
 
   // Save settings when they change
   const saveSettings = () => {
@@ -45,11 +50,18 @@ const SettingsPage = () => {
       dailyStepGoal: Number(dailyStepGoal) || 5000,
       selectedRingtone,
       notifyInBackground,
+      weeklyGoalEnabled,
+      weeklyGoalTarget,
     });
     
     // Schedule reminder if enabled
     if (reminderEnabled) {
       scheduleReminder();
+    }
+    
+    // Update weekly goal target if enabled
+    if (weeklyGoalEnabled && currentWeeklyGoal) {
+      setWeeklyGoalTarget(weeklyGoalTarget);
     }
 
     toast.success("Settings saved successfully");
@@ -256,6 +268,45 @@ const SettingsPage = () => {
                   Set your daily step count target
                 </p>
               </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Target className="h-5 w-5 mr-2 text-primary" />
+                Weekly Goals
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="weekly-goal-switch">Enable weekly workout goals</Label>
+                <Switch 
+                  id="weekly-goal-switch" 
+                  checked={weeklyGoalEnabled}
+                  onCheckedChange={setWeeklyGoalEnabled}
+                />
+              </div>
+              
+              {weeklyGoalEnabled && (
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <Label>Target workouts per week: {weeklyGoalTarget}</Label>
+                    </div>
+                    <Slider
+                      value={[weeklyGoalTarget]}
+                      min={1}
+                      max={7}
+                      step={1}
+                      onValueChange={(value) => setWeeklyGoalTargetState(value[0])}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Set a realistic goal for how many workouts you want to complete each week.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

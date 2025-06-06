@@ -1,21 +1,28 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useWorkout } from '@/context/WorkoutContext';
+import { useAchievement } from '@/context/AchievementContext';
 import Header from '@/components/Header';
 import WorkoutList from '@/components/WorkoutList';
 import StreakCalendar from '@/components/StreakCalendar';
 import StatsSummary from '@/components/StatsSummary';
 import StepTracker from '@/components/StepTracker';
 import BackupRestore from '@/components/BackupRestore';
+import ExerciseHistory from '@/components/ExerciseHistory';
+import BadgesAchievement from '@/components/BadgesAchievement';
+import WeeklyGoalTracker from '@/components/WeeklyGoalTracker';
 import { Button } from '@/components/ui/button';
 import { formatDateToYYYYMMDD } from '@/lib/workout-utils';
-import { Repeat, Settings } from 'lucide-react';
+import { Repeat, Settings, List, Award, Calendar, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index = () => {
   const { resetDailyProgress } = useWorkout();
+  const { exportToCSV } = useAchievement();
   const navigate = useNavigate();
   const today = new Date();
+  const [activeTab, setActiveTab] = useState<string>('workouts');
   
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
@@ -30,7 +37,7 @@ const Index = () => {
                 {formatDateToYYYYMMDD(today)} • Keep your streak going!
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button 
                 variant="outline" 
                 size="sm"
@@ -54,26 +61,73 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <WorkoutList />
-            </div>
-            <div className="lg:col-span-1">
-              <StepTracker />
-            </div>
+          {/* Mobile tabs for better navigation on small screens */}
+          <div className="md:hidden">
+            <Tabs defaultValue="workouts" onValueChange={setActiveTab}>
+              <TabsList className="grid grid-cols-4 w-full">
+                <TabsTrigger value="workouts"><List className="h-4 w-4 mr-1" /> Workouts</TabsTrigger>
+                <TabsTrigger value="goals"><Award className="h-4 w-4 mr-1" /> Goals</TabsTrigger>
+                <TabsTrigger value="stats"><Calendar className="h-4 w-4 mr-1" /> Stats</TabsTrigger>
+                <TabsTrigger value="history"><CalendarDays className="h-4 w-4 mr-1" /> History</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="workouts" className="space-y-6 mt-4">
+                <WorkoutList />
+                <StepTracker />
+              </TabsContent>
+              
+              <TabsContent value="goals" className="space-y-6 mt-4">
+                <WeeklyGoalTracker />
+                <BadgesAchievement />
+              </TabsContent>
+              
+              <TabsContent value="stats" className="space-y-6 mt-4">
+                <StreakCalendar />
+                <StatsSummary />
+              </TabsContent>
+              
+              <TabsContent value="history" className="space-y-6 mt-4">
+                <ExerciseHistory />
+                <div className="flex justify-end">
+                  <Button variant="outline" size="sm" onClick={exportToCSV}>
+                    <Calendar className="h-4 w-4 mr-2" /> Export History
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
-              <StreakCalendar />
+          {/* Desktop layout */}
+          <div className="hidden md:block">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <WorkoutList />
+              </div>
+              <div className="lg:col-span-1">
+                <div className="space-y-6">
+                  <WeeklyGoalTracker />
+                  <StepTracker />
+                </div>
+              </div>
             </div>
-            <div className="lg:col-span-2">
-              <StatsSummary />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+              <div className="lg:col-span-1">
+                <StreakCalendar />
+              </div>
+              <div className="lg:col-span-2">
+                <StatsSummary />
+              </div>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-6">
-            <BackupRestore />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              <BadgesAchievement />
+              <ExerciseHistory />
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6 mt-6">
+              <BackupRestore />
+            </div>
           </div>
         </div>
       </main>
