@@ -1,4 +1,3 @@
-
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 
@@ -47,7 +46,7 @@ export const initLocalNotifications = async (): Promise<LocalNotificationsPlugin
     }
     return LocalNotifications;
   }
-  console.log('Not running on a native platform, skipping notifications setup');
+  console.log('Not running on a native platform, notifications not available');
   return undefined;
 };
 
@@ -158,6 +157,77 @@ export const cancelAllNotifications = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('Failed to cancel notifications:', error);
+  }
+};
+
+// Send a notification when a workout is completed
+export const sendWorkoutCompletedNotification = async (workoutName: string): Promise<void> => {
+  try {
+    const notifications = await initLocalNotifications();
+    if (!notifications) return;
+    
+    await notifications.schedule({
+      notifications: [{
+        title: "Workout Completed! 💪",
+        body: `Great job completing ${workoutName}! Keep up the good work.`,
+        id: Date.now(),
+        schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay
+        sound: "notification",
+        channelId: "workout-reminders",
+        smallIcon: "ic_stat_directions_walk",
+        actionTypeId: 'WORKOUT_ACTIONS',
+        extra: {
+          type: 'workout_completed',
+          workoutName
+        }
+      }]
+    });
+    
+    console.log(`Workout completion notification sent for: ${workoutName}`);
+  } catch (error) {
+    console.error('Failed to send workout completion notification:', error);
+  }
+};
+
+// Send a notification when a streak milestone is reached
+export const sendStreakMilestoneNotification = async (streakDays: number): Promise<void> => {
+  try {
+    const notifications = await initLocalNotifications();
+    if (!notifications) return;
+    
+    let message = "";
+    if (streakDays === 5) {
+      message = "You've reached a 5-day streak! Amazing consistency!";
+    } else if (streakDays === 10) {
+      message = "10-day streak achieved! You're building a great habit!";
+    } else if (streakDays === 30) {
+      message = "30-day streak! You're officially a fitness warrior!";
+    } else if (streakDays % 10 === 0) {
+      message = `${streakDays}-day streak! Your dedication is inspiring!`;
+    } else {
+      message = `${streakDays}-day streak! Keep it up!`;
+    }
+    
+    await notifications.schedule({
+      notifications: [{
+        title: "Streak Milestone! 🔥",
+        body: message,
+        id: Date.now() + 1,
+        schedule: { at: new Date(Date.now() + 2000) }, // 2 second delay
+        sound: "notification",
+        channelId: "workout-reminders",
+        smallIcon: "ic_stat_directions_walk",
+        actionTypeId: 'WORKOUT_ACTIONS',
+        extra: {
+          type: 'streak_milestone',
+          streakDays
+        }
+      }]
+    });
+    
+    console.log(`Streak milestone notification sent for: ${streakDays} days`);
+  } catch (error) {
+    console.error('Failed to send streak milestone notification:', error);
   }
 };
 

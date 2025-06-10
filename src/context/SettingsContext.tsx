@@ -109,7 +109,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
     } else {
       setPluginsLoaded(true);
-      console.log("Not on native platform, skipping plugin initialization");
+      console.log("Not on native platform, using web fallback");
     }
   }, []);
 
@@ -203,14 +203,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Request notification permissions
+  // Request notification permissions - FIXED: Always use real implementation
   const setupNotificationPermissions = async (): Promise<boolean> => {
-    console.log("Setting up notification permissions");
-    if (!Capacitor.isNativePlatform()) {
-      console.log('Not on a native platform, simulating successful permission');
-      return true;
-    }
-
+    console.log("Setting up notification permissions for real device");
     return await requestNotificationPermissions();
   };
 

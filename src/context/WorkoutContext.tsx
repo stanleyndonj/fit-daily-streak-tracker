@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { Exercise, Workout, WorkoutCompletion, StreakData } from '@/types';
@@ -11,6 +12,7 @@ import {
   calculateStreakData,
   createSampleWorkout
 } from '@/lib/workout-utils';
+import { sendWorkoutCompletedNotification, sendStreakMilestoneNotification } from '@/utils/notificationUtils';
 
 interface WorkoutContextType {
   workouts: Workout[];
@@ -217,7 +219,38 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     saveCompletions(updatedCompletions);
   };
 
-  // Toggle exercise completion status - improved with better validation
+  // Check if a workout is fully completed and send notification
+  const checkWorkoutCompletion = (workoutId: string, today: string) => {
+    const workout = workouts.find(w => w.id === workoutId);
+    if (!workout) return;
+
+    const todayCompletion = completions.find(c => c.workoutId === workoutId && c.date === today);
+    if (!todayCompletion) return;
+
+    const totalExercises = workout.exercises.length;
+    const completedExercises = todayCompletion.completedExercises.length;
+
+    // If workout is fully completed
+    if (totalExercises > 0 && completedExercises === totalExercises) {
+      console.log(`Workout "${workout.name}" completed! Sending notification.`);
+      
+      // Send workout completion notification
+      sendWorkoutCompletedNotification(workout.name);
+      
+      // Calculate current streak and check for milestones
+      const newStreakData = calculateStreakData(completions);
+      const currentStreak = newStreakData.currentStreak;
+      
+      // Check if this completion creates a streak milestone
+      if (currentStreak === 5 || currentStreak === 10 || currentStreak === 30 || 
+          (currentStreak > 30 && currentStreak % 10 === 0)) {
+        console.log(`Streak milestone reached: ${currentStreak} days`);
+        sendStreakMilestoneNotification(currentStreak);
+      }
+    }
+  };
+
+  // Toggle exercise completion status - enhanced with notification triggers
   const toggleExerciseCompletion = (workoutId: string, exerciseId: string) => {
     // Enhanced validation to catch any potential issues
     if (!workoutId) {
@@ -226,7 +259,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     
     if (!exerciseId) {
-      console.error("Invalid exerciseId:", exerciseId);
+      console.error(`Missing exercise ID for exercise in workout: ${workoutId}`);
       return;
     }
     
@@ -307,6 +340,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         saveCompletions(updatedCompletions);
         console.log(`Added exercise completion: ${exerciseId}`);
         
+        // Check if workout is now complete and send notifications
+        setTimeout(() => checkWorkoutCompletion(workoutId, today), 100);
+        
         // Dispatch custom event for other contexts to react to
         // This will be used by the AchievementContext to track exercise completions
         window.dispatchEvent(new CustomEvent('exercise-completed', {
@@ -328,6 +364,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const updatedCompletions = [...completions, newCompletion];
       setCompletions(updatedCompletions);
       saveCompletions(updatedCompletions);
+      
+      // Check if workout is now complete and send notifications
+      setTimeout(() => checkWorkoutCompletion(workoutId, today), 100);
       
       // Dispatch custom event for other contexts to react to
       window.dispatchEvent(new CustomEvent('exercise-completed', {
