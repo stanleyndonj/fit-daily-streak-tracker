@@ -12,7 +12,7 @@ import { useSettings, AVAILABLE_RINGTONES } from '@/context/SettingsContext';
 import { useAchievement } from '@/context/AchievementContext';
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { playRingtone } from './ringtoneService';
+import { playRingtone } from '@/utils/ringtoneService';
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";

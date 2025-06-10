@@ -203,7 +203,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Request notification permissions - FIXED: Always use real implementation
+  // Request notification permissions - Always use real implementation
   const setupNotificationPermissions = async (): Promise<boolean> => {
     console.log("Setting up notification permissions for real device");
     return await requestNotificationPermissions();
