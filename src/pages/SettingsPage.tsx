@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Volume2, Vibrate, Calendar, Target } from 'lucide-react';
+import { ArrowLeft, Bell, Volume2, Vibrate, Calendar, Target, Play } from 'lucide-react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,13 @@ import { useSettings, AVAILABLE_RINGTONES } from '@/context/SettingsContext';
 import { useAchievement } from '@/context/AchievementContext';
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { playRingtone } from '@/utils/ringtoneService';
+import { playRingtone, getNotificationSounds, playNotificationSound } from '@/utils/ringtoneService';
+import { 
+  getCurrentSoundInfo, 
+  selectPresetSound, 
+  openNativeRingtonePicker, 
+  testNotificationSound 
+} from '@/utils/soundPickerService';
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -37,6 +43,10 @@ const SettingsPage = () => {
   const [notifyInBackground, setNotifyInBackground] = useState(settings.notifyInBackground ?? true);
   const [weeklyGoalEnabled, setWeeklyGoalEnabled] = useState(settings.weeklyGoalEnabled ?? true);
   const [weeklyGoalTarget, setWeeklyGoalTargetState] = useState(settings.weeklyGoalTarget ?? 4);
+
+  // Get current notification sound info
+  const currentSoundInfo = getCurrentSoundInfo();
+  const notificationSounds = getNotificationSounds();
 
   // Save settings when they change
   const saveSettings = () => {
@@ -87,6 +97,22 @@ const SettingsPage = () => {
     setSelectedRingtone(value);
     // Play a preview of the selected ringtone
     playRingtone(value);
+  };
+
+  // Handle notification sound selection
+  const handleNotificationSoundSelect = (soundId: string) => {
+    selectPresetSound(soundId);
+    playNotificationSound(soundId);
+    toast.success("Notification sound updated");
+  };
+
+  // Handle custom ringtone picker
+  const handleCustomRingtone = async () => {
+    const success = await openNativeRingtonePicker();
+    if (success) {
+      // Refresh the current sound info display
+      window.location.reload();
+    }
   };
 
   return (
@@ -216,6 +242,63 @@ const SettingsPage = () => {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Volume2 className="h-5 w-5 mr-2 text-primary" />
+                Notification Sounds
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <Label>Current notification sound</Label>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <span className="text-sm font-medium">{currentSoundInfo.name}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={testNotificationSound}
+                  >
+                    <Play className="h-4 w-4 mr-1" />
+                    Test
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Preset notification sounds</Label>
+                <div className="grid gap-2">
+                  {notificationSounds.map(sound => (
+                    <div key={sound.id} className="flex items-center justify-between p-2 border rounded">
+                      <span className="text-sm">{sound.name}</span>
+                      <Button 
+                        variant={currentSoundInfo.uri === sound.uri ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => handleNotificationSoundSelect(sound.id)}
+                      >
+                        {currentSoundInfo.uri === sound.uri ? "Selected" : "Select"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Custom sounds</Label>
+                <Button 
+                  variant="outline" 
+                  onClick={handleCustomRingtone}
+                  className="w-full"
+                >
+                  Choose from device
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Select a custom ringtone from your device's sound library.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

@@ -26,7 +26,7 @@ export const initLocalNotifications = async (): Promise<LocalNotificationsPlugin
         LocalNotifications = module.LocalNotifications;
         console.log('LocalNotifications plugin loaded successfully');
         
-        // Setup notification channel for Android
+        // Setup notification channel for Android with sound
         if (Capacitor.getPlatform() === 'android' && LocalNotifications) {
           await createNotificationChannel(LocalNotifications);
         }
@@ -34,8 +34,6 @@ export const initLocalNotifications = async (): Promise<LocalNotificationsPlugin
         // Register notification actions
         if (LocalNotifications) {
           await registerNotificationActions(LocalNotifications);
-          
-          // Setup listeners
           await setupNotificationListeners(LocalNotifications);
         }
         
@@ -51,24 +49,59 @@ export const initLocalNotifications = async (): Promise<LocalNotificationsPlugin
   return undefined;
 };
 
-// Create notification channel for Android
+// Get the sound URI for notifications based on user preference
+const getNotificationSoundUri = (): string => {
+  try {
+    const savedSound = localStorage.getItem('notification_sound_uri');
+    if (savedSound && savedSound !== 'default') {
+      return savedSound;
+    }
+    // Default sound - will be created in Android resources
+    return 'android.resource://app.lovable.d0ce9398d4d1400d92ebaae8353ae61a/raw/fitdaily_reminder';
+  } catch (error) {
+    console.error('Error getting notification sound URI:', error);
+    return 'android.resource://app.lovable.d0ce9398d4d1400d92ebaae8353ae61a/raw/fitdaily_reminder';
+  }
+};
+
+// Create notification channel for Android with proper sound configuration
 const createNotificationChannel = async (notificationsPlugin: LocalNotificationsPlugin): Promise<void> => {
   try {
+    const soundUri = getNotificationSoundUri();
+    
     await notificationsPlugin.createChannel({
       id: "workout-reminders",
       name: "Workout Reminders",
       description: "Daily reminders for your workout routine",
-      importance: 5, // Maximum importance
+      importance: 5, // IMPORTANCE_HIGH
       visibility: 1,
-      sound: "notification",
+      sound: soundUri,
       vibration: true,
       lights: true,
-      lightColor: "#488AFF"
+      lightColor: "#488AFF",
+      enableVibration: true,
+      enableLights: true
     });
-    console.log('Notification channel created successfully');
+    
+    console.log('Notification channel created with sound URI:', soundUri);
   } catch (error) {
     console.error('Failed to create notification channel:', error);
   }
+};
+
+// Save custom notification sound URI
+export const saveNotificationSoundUri = (uri: string): void => {
+  try {
+    localStorage.setItem('notification_sound_uri', uri);
+    console.log('Notification sound URI saved:', uri);
+  } catch (error) {
+    console.error('Failed to save notification sound URI:', error);
+  }
+};
+
+// Get current notification sound URI
+export const getNotificationSoundUriForSettings = (): string => {
+  return getNotificationSoundUri();
 };
 
 // Register notification action types
@@ -167,13 +200,15 @@ export const sendWorkoutCompletedNotification = async (workoutName: string): Pro
     const notifications = await initLocalNotifications();
     if (!notifications) return;
     
+    const soundUri = getNotificationSoundUri();
+    
     await notifications.schedule({
       notifications: [{
         title: "Workout Completed! 💪",
         body: `Great job completing ${workoutName}! Keep up the good work.`,
         id: Date.now(),
         schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay
-        sound: "notification",
+        sound: soundUri,
         channelId: "workout-reminders",
         smallIcon: "ic_stat_directions_walk",
         actionTypeId: 'WORKOUT_ACTIONS',
@@ -184,7 +219,7 @@ export const sendWorkoutCompletedNotification = async (workoutName: string): Pro
       }]
     });
     
-    console.log(`Workout completion notification sent for: ${workoutName}`);
+    console.log(`Workout completion notification sent for: ${workoutName} with sound: ${soundUri}`);
   } catch (error) {
     console.error('Failed to send workout completion notification:', error);
   }
@@ -209,13 +244,15 @@ export const sendStreakMilestoneNotification = async (streakDays: number): Promi
       message = `${streakDays}-day streak! Keep it up!`;
     }
     
+    const soundUri = getNotificationSoundUri();
+    
     await notifications.schedule({
       notifications: [{
         title: "Streak Milestone! 🔥",
         body: message,
         id: Date.now() + 1,
         schedule: { at: new Date(Date.now() + 2000) }, // 2 second delay
-        sound: "notification",
+        sound: soundUri,
         channelId: "workout-reminders",
         smallIcon: "ic_stat_directions_walk",
         actionTypeId: 'WORKOUT_ACTIONS',
@@ -226,13 +263,13 @@ export const sendStreakMilestoneNotification = async (streakDays: number): Promi
       }]
     });
     
-    console.log(`Streak milestone notification sent for: ${streakDays} days`);
+    console.log(`Streak milestone notification sent for: ${streakDays} days with sound: ${soundUri}`);
   } catch (error) {
     console.error('Failed to send streak milestone notification:', error);
   }
 };
 
-// Schedule a daily workout notification
+// Schedule a daily workout notification with proper sound
 export const scheduleDailyNotification = async (
   time: string,
   weekdaysOnly: boolean,
@@ -261,35 +298,28 @@ export const scheduleDailyNotification = async (
     let triggerDate: Date;
     
     if (specificDate) {
-      // Use specific date if provided
       triggerDate = new Date(specificDate);
       triggerDate.setHours(hours, minutes, 0, 0);
       
-      // If date is in the past, don't schedule
       if (triggerDate < now) {
         console.error("The selected date has already passed");
         toast.error("The selected date has already passed");
         return false;
       }
     } else {
-      // Set for today at the specified time
       triggerDate = new Date();
       triggerDate.setHours(hours, minutes, 0, 0);
       
-      // If the time has passed for today, schedule for tomorrow
       if (triggerDate <= now) {
         triggerDate.setDate(triggerDate.getDate() + 1);
         console.log('Time already passed today, scheduling for tomorrow:', triggerDate);
       }
       
-      // If weekdaysOnly and the date falls on a weekend, move to Monday
       if (weekdaysOnly) {
-        const day = triggerDate.getDay(); // 0 = Sunday, 6 = Saturday
+        const day = triggerDate.getDay();
         if (day === 0) {
-          // If Sunday, move to Monday (+1 day)
           triggerDate.setDate(triggerDate.getDate() + 1);
         } else if (day === 6) {
-          // If Saturday, move to Monday (+2 days)
           triggerDate.setDate(triggerDate.getDate() + 2);
         }
       }
@@ -297,16 +327,10 @@ export const scheduleDailyNotification = async (
     
     console.log('Final trigger date calculated:', triggerDate.toLocaleString());
     
-    // Ensure valid sound name
-    let soundName = selectedRingtone;
-    if (soundName === 'default') {
-      soundName = 'notification';
-    }
+    // Get the sound URI for this notification
+    const soundUri = getNotificationSoundUri();
     
-    // Is this a one-time or repeating notification?
     const isRepeating = !specificDate;
-    
-    // Schedule notification
     const notificationId = 100;
     
     await notifications.schedule({
@@ -322,7 +346,7 @@ export const scheduleDailyNotification = async (
             allowWhileIdle: true,
             precise: true
           },
-          sound: soundName,
+          sound: soundUri,
           smallIcon: "ic_stat_directions_walk",
           largeIcon: "notification_icon",
           channelId: "workout-reminders",
@@ -333,9 +357,8 @@ export const scheduleDailyNotification = async (
       ]
     });
     
-    console.log('Notification scheduled successfully for:', triggerDate.toLocaleString());
+    console.log('Notification scheduled successfully for:', triggerDate.toLocaleString(), 'with sound:', soundUri);
     
-    // Determine the notification message to show
     let message = '';
     if (isRepeating) {
       message = weekdaysOnly ? 
@@ -362,37 +385,36 @@ export const setupNotificationListeners = async (notificationsPlugin?: LocalNoti
     
     console.log('Setting up notification listeners...');
     
-    // Listen for notification received
     notifications.addListener('localNotificationReceived', (notification) => {
       console.log('Notification received:', notification);
     });
     
-    // Listen for notification actions
     notifications.addListener('localNotificationActionPerformed', (notificationData) => {
       console.log('Notification action performed:', notificationData);
       
       const actionId = notificationData.actionId;
       
       if (actionId === 'snooze') {
-        // Snooze for 10 minutes
         const snoozeTime = new Date();
         snoozeTime.setMinutes(snoozeTime.getMinutes() + 10);
+        
+        const soundUri = getNotificationSoundUri();
         
         notifications.schedule({
           notifications: [
             {
-              id: 101, // Different ID for the snooze notification
+              id: 101,
               title: "Workout Reminder",
               body: "This is your snoozed reminder. Time to work out now!",
               schedule: { at: snoozeTime },
-              sound: "notification",
+              sound: soundUri,
               channelId: "workout-reminders",
               smallIcon: "ic_stat_directions_walk"
             }
           ]
         });
         
-        console.log('Notification snoozed for 10 minutes');
+        console.log('Notification snoozed for 10 minutes with sound:', soundUri);
       }
     });
     

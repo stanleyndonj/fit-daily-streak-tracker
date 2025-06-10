@@ -1,10 +1,16 @@
 
 import { AVAILABLE_RINGTONES } from '@/context/SettingsContext';
 import { Capacitor } from '@capacitor/core';
+import { PRESET_SOUNDS, selectPresetSound } from './soundPickerService';
 
 export const getRingtones = async () => {
-  // This function returns the static list of available ringtones
+  // Return both the old ringtones for compatibility and new preset sounds
   return AVAILABLE_RINGTONES;
+};
+
+// Get available notification sounds (includes presets)
+export const getNotificationSounds = () => {
+  return PRESET_SOUNDS;
 };
 
 // Audio objects cache for web playback
@@ -40,6 +46,29 @@ export const playRingtone = async (ringtoneId: string) => {
   } else {
     // For web, we use the Web Audio API
     playWebTone(ringtoneId);
+  }
+};
+
+// Play notification sound (for settings preview)
+export const playNotificationSound = async (soundId: string) => {
+  console.log(`Playing notification sound: ${soundId}`);
+  
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Select the preset sound temporarily for preview
+      selectPresetSound(soundId);
+      
+      // Provide haptic feedback
+      const { Haptics } = await import('@capacitor/haptics' /* webpackIgnore: true */);
+      await Haptics.vibrate();
+      
+      console.log('Would play notification sound on device:', soundId);
+    } catch (error) {
+      console.error('Error playing notification sound:', error);
+      playWebTone(soundId);
+    }
+  } else {
+    playWebTone(soundId);
   }
 };
 
