@@ -1,4 +1,3 @@
-
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 
@@ -57,10 +56,10 @@ const getNotificationSoundUri = (): string => {
       return savedSound;
     }
     // Default sound - will be created in Android resources
-    return 'android.resource://app.lovable.d0ce9398d4d1400d92ebaae8353ae61a/raw/fitdaily_reminder';
+    return 'fitdaily_reminder';
   } catch (error) {
     console.error('Error getting notification sound URI:', error);
-    return 'android.resource://app.lovable.d0ce9398d4d1400d92ebaae8353ae61a/raw/fitdaily_reminder';
+    return 'fitdaily_reminder';
   }
 };
 

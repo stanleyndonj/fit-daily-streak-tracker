@@ -1,6 +1,5 @@
-
 import { AVAILABLE_RINGTONES } from '@/context/SettingsContext';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { PRESET_SOUNDS, selectPresetSound } from './soundPickerService';
 
 export const getRingtones = async () => {
@@ -49,22 +48,49 @@ export const playRingtone = async (ringtoneId: string) => {
   }
 };
 
+// Register NativeAudio plugin for playing short sounds on native platforms
+type NativeAudioPlugin = {
+  load: (options: { assetId: string; assetPath: string; isUrl?: boolean }) => Promise<void>;
+  play: (options: { assetId: string; time?: number }) => Promise<void>;
+  unload: (options: { assetId: string }) => Promise<void>;
+};
+const NativeAudio = registerPlugin<NativeAudioPlugin>('NativeAudio');
+
+// Keep track of loaded assets to avoid loading twice
+const loadedNativeAudioAssets = new Set<string>();
+
 // Play notification sound (for settings preview)
 export const playNotificationSound = async (soundId: string) => {
   console.log(`Playing notification sound: ${soundId}`);
   
   if (Capacitor.isNativePlatform()) {
     try {
-      // Select the preset sound temporarily for preview
+      // Select the preset sound temporarily for preview (saves to storage)
       selectPresetSound(soundId);
       
-      // Provide haptic feedback
       const { Haptics } = await import('@capacitor/haptics' /* webpackIgnore: true */);
       await Haptics.vibrate();
-      
-      console.log('Would play notification sound on device:', soundId);
+
+      // Determine the resource name (without extension) to load
+      let resourceName = soundId;
+      if (soundId === 'default') {
+        resourceName = 'fitdaily_reminder';
+      }
+
+      // Android raw resources can be referenced with the prefix "res://"
+      const assetPath = `res://${resourceName}`;
+
+      if (!loadedNativeAudioAssets.has(resourceName)) {
+        await NativeAudio.load({ assetId: resourceName, assetPath });
+        loadedNativeAudioAssets.add(resourceName);
+      }
+
+      await NativeAudio.play({ assetId: resourceName });
+      console.log('Native sound preview played:', resourceName);
+      return;
     } catch (error) {
-      console.error('Error playing notification sound:', error);
+      console.error('Error playing notification sound natively:', error);
+      // Fallback to web tone if native audio fails
       playWebTone(soundId);
     }
   } else {

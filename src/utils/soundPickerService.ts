@@ -1,5 +1,4 @@
-
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { saveNotificationSoundUri } from './notificationUtils';
 import { toast } from 'sonner';
 
@@ -8,12 +7,15 @@ interface SoundPickerPlugin {
   openRingtonePicker: () => Promise<{ uri: string; name: string } | null>;
 }
 
+// Register custom native sound picker plugin
+const SoundPicker = registerPlugin<SoundPickerPlugin>('SoundPicker');
+
 // Available preset sounds with their Android resource URIs
 export const PRESET_SOUNDS = [
   { 
     id: 'default', 
     name: 'FitDaily Default',
-    uri: 'android.resource://app.lovable.d0ce9398d4d1400d92ebaae8353ae61a/raw/fitdaily_reminder'
+    uri: 'fitdaily_reminder'
   },
   { 
     id: 'system_notification', 
@@ -84,19 +86,15 @@ export const openNativeRingtonePicker = async (): Promise<boolean> => {
   }
   
   try {
-    // This would require a custom Capacitor plugin to access Android's RingtoneManager
-    // For now, we'll show a message about this feature being in development
-    toast.info('Custom ringtone picker will be available in a future update. Please use preset sounds for now.');
-    
-    // Placeholder for future implementation:
-    // const result = await SoundPicker.openRingtonePicker();
-    // if (result) {
-    //   saveNotificationSoundUri(result.uri);
-    //   localStorage.setItem('notification_sound_name', result.name);
-    //   toast.success(`Sound changed to: ${result.name}`);
-    //   return true;
-    // }
-    
+    // Call the native plugin to open the system ringtone picker
+    const result = await (SoundPicker as any).openRingtonePicker();
+    if (result && result.uri) {
+      saveNotificationSoundUri(result.uri);
+      localStorage.setItem('notification_sound_name', result.name ?? 'Custom sound');
+      toast.success(`Sound changed to: ${result.name ?? 'Custom sound'}`);
+      return true;
+    }
+    toast.error('No sound selected');
     return false;
   } catch (error) {
     console.error('Error opening native ringtone picker:', error);
