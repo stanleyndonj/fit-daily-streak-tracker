@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, Volume2, Vibrate, Calendar, Target, Play } from 'lucide-react';
@@ -24,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
+import { promptDisableBatteryOptimization } from '@/utils/batteryOptimizationService';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -113,6 +113,11 @@ const SettingsPage = () => {
       // Refresh the current sound info display
       window.location.reload();
     }
+  };
+
+  // Handle battery optimization helper
+  const handleBatteryOptimization = () => {
+    promptDisableBatteryOptimization();
   };
 
   return (
@@ -390,6 +395,26 @@ const SettingsPage = () => {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Battery Optimization</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="mt-4 space-y-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleBatteryOptimization}
+                  className="w-full"
+                >
+                  Disable battery optimization
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Some devices aggressively kill background tasks. Exclude FitDaily from battery optimization to ensure timely reminders.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

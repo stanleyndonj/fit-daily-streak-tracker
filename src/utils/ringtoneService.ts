@@ -1,5 +1,5 @@
 import { AVAILABLE_RINGTONES } from '@/context/SettingsContext';
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
 import { PRESET_SOUNDS, selectPresetSound } from './soundPickerService';
 
 export const getRingtones = async () => {
@@ -48,49 +48,38 @@ export const playRingtone = async (ringtoneId: string) => {
   }
 };
 
-// Register NativeAudio plugin for playing short sounds on native platforms
-type NativeAudioPlugin = {
-  load: (options: { assetId: string; assetPath: string; isUrl?: boolean }) => Promise<void>;
-  play: (options: { assetId: string; time?: number }) => Promise<void>;
-  unload: (options: { assetId: string }) => Promise<void>;
-};
-const NativeAudio = registerPlugin<NativeAudioPlugin>('NativeAudio');
-
-// Keep track of loaded assets to avoid loading twice
-const loadedNativeAudioAssets = new Set<string>();
-
-// Play notification sound (for settings preview)
 export const playNotificationSound = async (soundId: string) => {
   console.log(`Playing notification sound: ${soundId}`);
-  
   if (Capacitor.isNativePlatform()) {
     try {
-      // Select the preset sound temporarily for preview (saves to storage)
+      // Save selection (so channel picks it up)
       selectPresetSound(soundId);
-      
-      const { Haptics } = await import('@capacitor/haptics' /* webpackIgnore: true */);
-      await Haptics.vibrate();
 
-      // Determine the resource name (without extension) to load
-      let resourceName = soundId;
-      if (soundId === 'default') {
-        resourceName = 'fitdaily_reminder';
-      }
+      // Use LocalNotifications to play the sound via OS (fires after 1 s and auto-clears)
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
 
-      // Android raw resources can be referenced with the prefix "res://"
-      const assetPath = `res://${resourceName}`;
+      // Create a one-time notification that is immediately dismissed
+      const previewId = Date.now();
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: previewId,
+          title: 'Sound preview',
+          body: '🔊',
+          schedule: { at: new Date(Date.now() + 500) },
+          sound: soundId === 'default' ? 'fitdaily_reminder' : soundId,
+          channelId: 'workout-reminders',
+          smallIcon: 'ic_stat_directions_walk'
+        }]
+      });
 
-      if (!loadedNativeAudioAssets.has(resourceName)) {
-        await NativeAudio.load({ assetId: resourceName, assetPath });
-        loadedNativeAudioAssets.add(resourceName);
-      }
+      // Auto-cancel after 2s so it does not linger
+      setTimeout(() => {
+        LocalNotifications.cancel({ notifications: [{ id: previewId }] });
+      }, 3000);
 
-      await NativeAudio.play({ assetId: resourceName });
-      console.log('Native sound preview played:', resourceName);
       return;
-    } catch (error) {
-      console.error('Error playing notification sound natively:', error);
-      // Fallback to web tone if native audio fails
+    } catch (err) {
+      console.error('Notification preview failed, falling back to web tone', err);
       playWebTone(soundId);
     }
   } else {
